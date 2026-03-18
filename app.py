@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 
-# 1. Konfiguration
+# 1. Konfiguration - Maximerad yta
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -26,19 +26,21 @@ def get_image_base64(path):
 
 def get_all_songs(directory):
     song_list = []
-    for root, dirs, files in os.walk(directory):
-        for f in files:
-            if f.endswith(".md"):
-                song_list.append({"title": clean_title(f), "path": os.path.join(root, f)})
+    if os.path.exists(directory):
+        for root, dirs, files in os.walk(directory):
+            for f in files:
+                if f.endswith(".md"):
+                    song_list.append({"title": clean_title(f), "path": os.path.join(root, f)})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (Minimalistisk Header: Klickbar logga & Osynlig högerknapp) ---
+# --- CSS (ATOMKRAFT-LAYOUT) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono&display=swap');
 
+    /* DÖLJ STANDARD-ELEMENT */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -49,61 +51,82 @@ st.markdown(f"""
         padding-right: 0.5rem !important;
     }}
 
-    /* 1. LOGGAN SOM HEMKNAPP (VÄNSTER) */
-    .header-logo-btn {{
+    /* MASTER HEADER CONTAINER */
+    .master-header {{
         position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        width: 75px !important; 
-        z-index: 1000006 !important;
-        background: none !important;
-        border: none !important;
-        padding: 0 !important;
-        cursor: pointer !important;
-        transform: rotate(-8deg) !important;
-        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 80px;
+        background-color: #ffffff;
+        z-index: 1000000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 15px;
+        border-bottom: 1px solid #eee;
     }}
 
-    /* 2. RULLISTAN (MITTEN) */
-    .header-center-dropdown {{
-        position: fixed !important;
-        top: 15px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 50% !important; 
-        z-index: 1000005 !important;
+    /* LOGGAN (VÄNSTER + KLICKBAR) */
+    .logo-container {{
+        width: 80px;
+        cursor: pointer;
+        transform: rotate(-8deg);
+        filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.1));
+    }}
+    .logo-container img {{
+        width: 70px !important; /* Spikar storleken här */
+        height: auto;
     }}
 
-    /* 3. OSYNLIG KNAPP (HÖGER) - För symmetri i koden */
-    .header-right-invisible {{
-        position: fixed !important;
-        top: 15px !important;
-        right: 15px !important;
-        width: 80px !important;
-        height: 45px !important;
-        z-index: 1000005 !important;
-        opacity: 0 !important; /* Gör den helt osynlig */
-        pointer-events: none !important; /* Gör den oklickbar så den inte stör */
+    /* RULLLISTAN (MITTEN) */
+    .dropdown-container {{
+        flex-grow: 1;
+        max-width: 50%;
+        margin: 0 10px;
     }}
 
-    /* Styling för dropdown */
+    /* STYLING FÖR STREAMLIT SELECTBOX */
     div[data-testid="stSelectbox"] > div {{
         border: 2px solid #000 !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         background: white !important;
+        height: 45px !important;
     }}
 
-    /* TABS-SÄKERHET OCH LÄSYTA */
-    .song-reader-final {{
-        height: 90vh !important;
+    /* OSYNLIG PUNKT (HÖGER) FÖR BALANS */
+    .right-balance {{
+        width: 80px;
+    }}
+
+    /* LÄSRUTAN (TABS-SÄKER OCH GRÄNSLÖS) */
+    .song-area-pro {{
+        margin-top: 90px;
+        height: 88vh !important;
         width: 100%;
-        margin-top: 100px;
-        font-family: 'Roboto Mono', monospace !important;
-        font-size: 14px !important;
+        overflow-y: auto;
+        background-color: #ffffff !important;
+        padding: 10px 5px !important;
+        border: none !important;
+        
+        /* Monospace garanterar spikraka tabs */
+        font-family: 'Roboto Mono', 'Courier New', monospace !important;
+        font-size: 14px !important; 
         line-height: 1.2 !important;
+        
+        /* Förbjuder radbrytning */
         white-space: pre !important; 
         overflow-x: auto !important;
         color: #000 !important;
+    }}
+
+    /* LISTVYN KNAPPAR */
+    div[data-testid="stButton"] > button {{
+        background-color: #ffffff !important;
+        border: 2px solid #000000 !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        width: 100% !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -115,51 +138,61 @@ all_songs = get_all_songs(songs_dir)
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# RENDERA LOGGA SOM HEMKNAPP (Vänster)
-# Vi använder en Streamlit-knapp men gömmer den bakom loggan med CSS
-st.markdown('<div class="header-logo-btn">', unsafe_allow_html=True)
-if st.button(" ", key="logo_home_trigger"):
-    st.session_state.view = "list"
-    st.session_state.song_path = ""
-    st.rerun()
-if logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" style="width:100%; pointer-events:none;">', unsafe_allow_html=True)
+# --- RENDERA DEN NYA HEADERN ---
+st.markdown('<div class="master-header">', unsafe_allow_html=True)
+
+# 1. Logga (Hemknapp)
+col_l, col_c, col_r = st.columns([1, 4, 1])
+
+with col_l:
+    if st.button("🏠", key="home_btn", help="Gå hem"):
+        st.session_state.view = "list"
+        st.session_state.song_path = ""
+        st.rerun()
+    if logo_b64:
+        st.markdown(f'<div class="logo-container"><img src="data:image/png;base64,{logo_b64}"></div>', unsafe_allow_html=True)
+
+# 2. Rulllista (Mitten)
+with col_c:
+    song_titles = [s["title"] for s in all_songs]
+    try:
+        current_idx = next(i for i, s in enumerate(all_songs) if s["path"] == st.session_state.song_path)
+    except:
+        current_idx = 0
+    
+    selected_song = st.selectbox("", options=song_titles, index=current_idx, label_visibility="collapsed", key="main_selector")
+    
+    # Logik för byte av låt
+    if all_songs:
+        new_path = next(s["path"] for s in all_songs if s["title"] == selected_song)
+        if new_path != st.session_state.song_path:
+            st.session_state.song_path = new_path
+            st.session_state.view = "song"
+            st.rerun()
+
+# 3. Höger sida (Tom för balans)
+with col_r:
+    st.write("")
+
 st.markdown('</div>', unsafe_allow_html=True)
 
-# RENDERA RULLLISTA (Mitten)
-st.markdown('<div class="header-center-dropdown">', unsafe_allow_html=True)
-song_titles = [s["title"] for s in all_songs]
-try:
-    current_idx = next(i for i, s in enumerate(all_songs) if s["path"] == st.session_state.song_path)
-except:
-    current_idx = 0
-
-selected_song_title = st.selectbox("", options=song_titles, index=current_idx, label_visibility="collapsed")
-new_path = next(s["path"] for s in all_songs if s["title"] == selected_song_title)
-
-if new_path != st.session_state.song_path:
-    st.session_state.song_path = new_path
-    st.session_state.view = "song"
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-
-# RENDERA OSYNLIG FYLLNAD (Höger)
-st.markdown('<div class="header-right-invisible"></div>', unsafe_allow_html=True)
-
-# --- INNEHÅLL ---
+# --- RENDERA INNEHÅLL ---
 if st.session_state.view == "list":
-    st.markdown('<div style="height:110px;"></div>', unsafe_allow_html=True)
-    st.subheader("Alla Låtar")
-    # Enkel listvy som backup
-    cols = st.columns(2)
-    for i, song in enumerate(all_songs):
-        with cols[i % 2]:
-            if st.button(song["title"], key=f"list_{song['path']}"):
-                st.session_state.song_path = song["path"]
-                st.session_state.view = "song"
-                st.rerun()
+    st.markdown('<div style="height:100px;"></div>', unsafe_allow_html=True)
+    st.subheader("Mina Låtar")
+    if not all_songs:
+        st.warning("Inga låtar hittades i mappen 'library'.")
+    else:
+        cols = st.columns(2)
+        for i, song in enumerate(all_songs):
+            with cols[i % 2]:
+                if st.button(song["title"], key=f"list_{song['path']}"):
+                    st.session_state.song_path = song["path"]
+                    st.session_state.view = "song"
+                    st.rerun()
 else:
     if os.path.exists(st.session_state.song_path):
         with open(st.session_state.song_path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-reader-final">{content + ("\n"*55)}</div>', unsafe_allow_html=True)
+        # Visar låten med extra scroll-utrymme i botten
+        st.markdown(f'<div class="song-area-pro">{content + ("\n"*60)}</div>', unsafe_allow_html=True)

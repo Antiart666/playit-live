@@ -1,9 +1,8 @@
 import streamlit as st
 import os
-import re
 import base64
 
-# 1. Konfiguration
+# 1. Konfiguration - Maximerad spelyta
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -11,15 +10,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNKTIONER ---
+# --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    """Snyggar till filnamn för listvyn."""
+    """Gör filnamn som LÅT_NAMN.md till Låt namn"""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Laddar loggan säkert."""
+    """Laddar loggan säkert för inbäddning"""
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
@@ -27,7 +26,7 @@ def get_image_base64(path):
         except: return None
     return None
 
-# --- DESIGN (Tvingar knappen till höger och fixar tabs) ---
+# --- DESIGN (Tvingar logga till vänster och knapp till höger) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -38,7 +37,7 @@ st.markdown(f"""
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GLOBAL TEXT */
+    /* GLOBAL TEXTSTIL */
     * {{ color: #000000 !important; font-family: 'Inter', sans-serif !important; }}
 
     .block-container {{
@@ -48,26 +47,30 @@ st.markdown(f"""
         padding-right: 0.5rem !important;
     }}
 
-    /* LOGGAN (Spikad till VÄNSTER, 80px bred) */
+    /* LOGGAN (Fastlåst till VÄNSTER) */
     .fixed-logo-left {{
         position: fixed !important;
-        top: 25px !important;
+        top: 20px !important;
         left: 20px !important;
         width: 80px !important; 
         z-index: 1000001 !important;
         transform: rotate(-8deg) !important;
-        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+        filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.15));
         pointer-events: none;
     }}
 
-    /* KNAPPEN LÅTAR (Spikad till HÖGER) */
-    div[data-testid="stButton"] > button[key="nav_to_list"] {{
+    /* NAV-BEHÅLLARE (Tvingar knappen till HÖGER) */
+    .fixed-nav-right-container {{
         position: fixed !important;
         top: 20px !important;
-        right: 20px !important; /* TVINGAR DEN TILL HÖGER */
+        right: 20px !important;
+        z-index: 1000002 !important;
+    }}
+
+    /* Snygga till LÅTAR-knappen */
+    .fixed-nav-right-container button {{
         width: 120px !important;
         height: 55px !important;
-        z-index: 1000002 !important;
         background-color: #ffffff !important;
         border: 3px solid #000000 !important;
         border-radius: 12px !important;
@@ -75,17 +78,17 @@ st.markdown(f"""
         font-size: 16px !important;
         color: #000000 !important;
         text-transform: uppercase !important;
-        box-shadow: 4px 4px 10px rgba(0,0,0,0.15) !important;
+        box-shadow: 4px 4px 12px rgba(0,0,0,0.2) !important;
         cursor: pointer !important;
     }}
 
-    /* MELLANRUM SÅ ATT TEXTEN INTE HAMNAR BAKOM HEADERN */
+    /* SKYDD FÖR ARKIVLISTAN */
     .header-clearance {{
         height: 110px;
         display: block;
     }}
 
-    /* LÄSRUTAN (GRÄNSLÖS & TABS-SÄKER) */
+    /* LÄSRUTAN (SPIKRAKA TABS - INGEN AVSTAVNING) */
     .song-stage-final {{
         height: 92vh !important; 
         width: 100%;
@@ -94,12 +97,12 @@ st.markdown(f"""
         padding: 10px 5px !important;
         border: none !important;
         
-        /* Monospace fixar så tabs ligger i linje */
+        /* Monospace font tvingar alla tecken att vara lika breda */
         font-family: 'Roboto Mono', 'Courier New', monospace !important;
         font-size: 13px !important; 
         line-height: 1.1 !important;
         
-        /* Denna rad stoppar "skeva" tabs genom att aldrig radbryta rader */
+        /* Förbjuder radbrytning - rader förblir spikraka */
         white-space: pre !important; 
         overflow-x: auto !important;
     }}
@@ -120,15 +123,17 @@ st.markdown(f"""
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# RITA LOGGAN (Vänster)
+# RITA LOGGAN (Vänster hörn)
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="fixed-logo-left">', unsafe_allow_html=True)
 
-# RITA KNAPPEN LÅTAR (Höger)
-if st.button("LÅTAR", key="nav_to_list"):
+# RITA NAV-KNAPPEN (Höger hörn)
+st.markdown('<div class="fixed-nav-right-container">', unsafe_allow_html=True)
+if st.button("LÅTAR", key="nav_btn_top"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
     st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
 songs_dir = "library"
 
@@ -138,12 +143,12 @@ if not os.path.exists(songs_dir):
     st.error("Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
-        # --- ARKIVVYN ---
+        # ARKIVVYN
         st.markdown('<div class="header-clearance"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
-            if category == "library": category = "Mina Låtar"
+            if category == "library": category = "Alla Låtar"
             
             valid_files = sorted([f for f in files if f.endswith(".md")])
             if valid_files:
@@ -158,7 +163,7 @@ else:
                             st.rerun()
 
     else:
-        # --- SCENVYN (Låten) ---
+        # SCENVYN (Låten)
         st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song_path):

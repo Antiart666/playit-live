@@ -33,7 +33,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Maximerad läsyta och rundade hörn) ---
+# --- DESIGN (Justerad textstorlek och maximerad yta) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -44,7 +44,6 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* MINIMERA MARGINALERNA RUNT APPEN */
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 0rem !important;
@@ -53,7 +52,6 @@ st.markdown("""
         max-width: 98% !important;
     }
 
-    /* LOGGA (Snedställd) */
     .logo-container {
         position: absolute;
         top: -10px;
@@ -72,25 +70,23 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* DEN MAXIMERADE LÄSRUTAN */
     .song-container {
-        height: 82vh; /* Ökat från 70vh till 82vh */
+        height: 82vh; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff;
         color: #000000;
-        padding: 30px;
+        padding: 20px; /* Något mindre padding för mer textyta */
         border: 3px solid #000000;
-        border-radius: 30px; /* Ännu rundare hörn */
+        border-radius: 30px; 
         margin-top: 10px;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 20px; /* Något större text för bättre sikt */
-        line-height: 1.6;
+        font-size: 18px; /* JUSTERAD FRÅN 20px TILL 18px */
+        line-height: 1.5;
         white-space: pre-wrap;
-        box-shadow: 10px 10px 0px #f0f0f0; /* Lite djup */
+        box-shadow: 10px 10px 0px #f0f0f0;
     }
 
-    /* KNAPPAR */
     .stButton>button {
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -100,13 +96,11 @@ st.markdown("""
         height: 3.5em !important;
     }
 
-    /* SÖKFÄLT */
     input {
         border: 2px solid #000000 !important;
         border-radius: 20px !important;
     }
 
-    /* STATUSBOXAR I MENYN */
     .status-box {
         border: 2px solid #000000;
         padding: 10px;
@@ -120,7 +114,7 @@ st.markdown("""
 
 # 2. Initiera App
 st.markdown('<div class="logo-container"><div class="logo-text">PLAYIT</div></div>', unsafe_allow_html=True)
-st.write("") # Spacer
+st.write("") 
 
 if "view" not in st.session_state: st.session_state.view = "list"
 if "current_song" not in st.session_state: st.session_state.current_song = ""
@@ -142,8 +136,6 @@ else:
         
         st.write("---")
         
-        # Visa låtar i en snygg grid
-        cols = st.columns(1) # Kan ändras till 2 för desktop om önskat
         for s in filtered:
             if st.button(clean_title(s)):
                 st.session_state.current_song = s
@@ -188,7 +180,7 @@ else:
             raw_text = f.read()
         
         processed_text = transpose_chords(raw_text, st.session_state.transpose)
-        display_text = processed_text + ("\n" * 40) # Mer luft i botten
+        display_text = processed_text + ("\n" * 40) 
 
         # Scroll-skript
         scroll_js = ""

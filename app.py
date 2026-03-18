@@ -1,9 +1,8 @@
 import streamlit as st
 import os
 import re
-import streamlit.components.v1 as components
 
-# Grundinställningar - Kompakt layout och mörkt tema som standard
+# 1. Grundinställningar
 st.set_page_config(
     page_title="PlayIt Live",
     page_icon="🎸",
@@ -28,166 +27,166 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (CSS) ---
+# --- DESIGN (Ljust tema, vita knappar, svarta kanter) ---
 st.markdown("""
     <style>
-    /* Bakgrunden */
+    /* Huvudbakgrund */
     .stApp {
-        background-color: #f0f0f0;
-        color: #000000;
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
     
-    /* Ta bort onödigt vitt utrymme högst upp */
+    /* Mobilanpassning av ytan */
     .block-container {
-        padding-top: 1rem;
+        padding-top: 2rem;
         padding-bottom: 0rem;
+        max-width: 100%;
     }
-    
-    /* Den ljusa boxen för låten */
+
+    /* Snedställd logga uppe till vänster */
+    .logo-text {
+        position: absolute;
+        top: -10px;
+        left: 10px;
+        font-size: 28px;
+        font-weight: 900;
+        transform: rotate(-10deg);
+        color: #000000;
+        z-index: 100;
+        font-family: 'Arial Black', sans-serif;
+    }
+
+    /* Låt-boxen */
     .scroll-container {
-        height: 75vh;
+        height: 70vh;
         overflow-y: auto;
         background-color: #ffffff;
         color: #000000;
-        padding: 20px;
-        border-radius: 12px;
-        border: 2px solid #000000;
+        padding: 15px;
+        border: 3px solid #000000;
+        border-radius: 0px; /* Mer avskalat med raka hörn */
         font-family: 'Courier New', Courier, monospace;
         font-size: 18px;
-        line-height: 1.6;
+        line-height: 1.5;
         white-space: pre-wrap;
     }
-    
-    /* Tydliga knappar: Vita med svarta kanter */
+
+    /* Vita knappar med svarta kanter */
     .stButton>button {
-        width: 100%;
-        border-radius: 10px;
-        font-weight: bold;
-        height: 3.5em;
-        background-color: #ffffff;
-        color: #000000;
-        border: 2px solid #000000;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+        border-radius: 0px !important;
+        font-weight: bold !important;
+        height: 3.5em !important;
+        text-transform: uppercase;
     }
     
-    /* Infoboxar för transponering och fart */
-    .info-box {
-        background-color: #e0e0e0;
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        border: 2px solid #000000;
-        color: #000000;
-        margin-bottom: 10px;
+    /* Sökfältet och input */
+    input {
+        border: 2px solid #000000 !important;
+        border-radius: 0px !important;
     }
-    
-    /* Snedställd logga */
-    .logo-container {
-        transform: rotate(-15deg);
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        font-size: 24px;
-        font-weight: bold;
-        color: #000000;
+
+    /* Sidomenyn ljus */
+    section[data-testid="stSidebar"] {
+        background-color: #f8f8f8 !important;
+        border-right: 2px solid #000000;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Plats för din logga
-st.markdown('<div class="logo-container">LOGGA</div>', unsafe_allow_html=True)
+# 2. Initiera Session States
+if "view" not in st.session_state: st.session_state.view = "list"
+if "selected_song" not in st.session_state: st.session_state.selected_song = ""
+if "transpose" not in st.session_state: st.session_state.transpose = 0
+if "speed" not in st.session_state: st.session_state.speed = 0
 
-st.title("🎸 PlayIt Live")
-
-# Initiera session states
-if "transpose_steps" not in st.session_state: st.session_state.transpose_steps = 0
-if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
-if "last_song" not in st.session_state: st.session_state.last_song = ""
-if "view" not in st.session_state: st.session_state.view = "list"  # 'list' eller 'song'
+# Visa loggan (placeholder tills du har din bild)
+st.markdown('<div class="logo-text">PLAYIT</div>', unsafe_allow_html=True)
 
 songs_dir = "library"
 
+# 3. App-logik
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas!")
+    st.error("Mappen 'library' hittades inte!")
 else:
     song_files = sorted([f for f in os.listdir(songs_dir) if f.endswith(".md")])
+
+    if st.session_state.view == "list":
+        # --- LIST-VY ---
+        st.title("Mina Låtar")
+        search = st.text_input("Sök...", "")
+        filtered = [f for f in song_files if search.lower() in f.lower()]
+        
+        for s in filtered:
+            if st.button(s.replace(".md", "")):
+                st.session_state.selected_song = s
+                st.session_state.transpose = 0
+                st.session_state.speed = 0
+                st.session_state.view = "song"
+                st.rerun()
     
-    if song_files:
-        if st.session_state.view == "list":
-            # --- LÅTLIST-VY ---
-            st.subheader("Mina Låtar")
-            search = st.text_input("Sök låt", "")
-            filtered = [f for f in song_files if search.lower() in f.lower()]
+    else:
+        # --- LÅT-VY ---
+        # Tillbaka-knapp högst upp
+        if st.button("← TILLBAKA"):
+            st.session_state.view = "list"
+            st.rerun()
             
-            for song in filtered:
-                if st.button(song.replace(".md", "")):
-                    st.session_state.last_song = song
-                    st.session_state.transpose_steps = 0
-                    st.session_state.scroll_speed = 0
-                    st.session_state.view = "song"
-                    st.rerun()
-                    
-        else:
-            # --- LÅTVY ---
-            selected_song = st.session_state.last_song
-            
-            # --- Tydligare Navigering ---
-            if st.sidebar.button("<- Tillbaka till låtlistan"):
-                st.session_state.view = "list"
-                st.rerun()
-            
-            st.subheader(selected_song.replace(".md", ""))
+        st.header(st.session_state.selected_song.replace(".md", ""))
 
-            # --- TRANSPONERING (Gömda i sidomenyn) ---
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("Transponera")
-            t_col1, t_col2 = st.sidebar.columns(2)
-            if t_col1.button("Sänk -1"): st.session_state.transpose_steps -= 1
-            if t_col2.button("Höj +1"): st.session_state.transpose_steps += 1
-            st.sidebar.markdown(f'<div class="info-box">Steg: <strong>{st.session_state.transpose_steps}</strong></div>', unsafe_allow_html=True)
+        # Sidomeny för kontroller (gömd som standard på mobil)
+        st.sidebar.subheader("KONTROLLER")
+        
+        # Transponering
+        st.sidebar.write(f"Tonart steg: {st.session_state.transpose}")
+        c1, c2 = st.sidebar.columns(2)
+        if c1.button("-"): st.session_state.transpose -= 1
+        if c2.button("+"): st.session_state.transpose += 1
+        
+        st.sidebar.markdown("---")
+        
+        # Scroll
+        st.sidebar.write(f"Scrollfart: {st.session_state.speed}")
+        s1, s2 = st.sidebar.columns(2)
+        if s1.button("Saktare"): st.session_state.speed = max(0, st.session_state.speed - 1)
+        if s2.button("Snabbare"): st.session_state.speed = min(10, st.session_state.speed + 1)
+        
+        if st.sidebar.button("STOPPA SCROLL"):
+            st.session_state.speed = 0
+            st.rerun()
 
-            # --- AUTO-SCROLL (Gömda i sidomenyn) ---
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("Auto-scroll")
-            s_col1, s_col2 = st.sidebar.columns(2)
-            if s_col1.button("Saktare"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
-            if s_col2.button("Snabbare"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
-            
-            st.sidebar.markdown(f'<div class="info-box">Fart: <strong>{st.session_state.scroll_speed}</strong></div>', unsafe_allow_html=True)
-            
-            if st.sidebar.button("STOPPA SCROLL", type="primary"):
-                st.session_state.scroll_speed = 0
-                st.rerun()
+        # Läs låten
+        with open(os.path.join(songs_dir, st.session_state.selected_song), "r", encoding="utf-8") as f:
+            text = f.read()
+        
+        text = transpose_chords(text, st.session_state.transpose)
+        
+        # Rendera låten och scroll-skriptet i ett och samma block för att undvika "Script error"
+        # Vi lägger till 30 tomma rader i slutet för att kunna scrolla förbi sista versen
+        display_text = text + ("\n" * 30)
+        
+        # Beräkna hastighet (ms)
+        delay = (11 - st.session_state.speed) * 30 if st.session_state.speed > 0 else 0
 
-            # Läs och förbered texten
-            with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
-                content = f.read()
-            
-            content = transpose_chords(content, st.session_state.transpose_steps)
+        scroll_script = ""
+        if st.session_state.speed > 0:
+            scroll_script = f"""
+            <script>
+            var container = document.getElementById("song-box");
+            var scrollVal = 0;
+            function doScroll() {{
+                if (container) {{
+                    container.scrollTop += 1;
+                }}
+            }}
+            if (window.scrollInterval) clearInterval(window.scrollInterval);
+            window.scrollInterval = setInterval(doScroll, {delay});
+            </script>
+            """
 
-            # Skapa containern med texten
-            # Vi lägger till massor av extra tomrum i botten av texten så man kan scrolla hela vägen ut
-            full_display_content = content + "\n\n" + ("\n" * 20)
-            st.markdown(f'<div id="song-box" class="scroll-container">{full_display_content}</div>', unsafe_allow_html=True)
-            
-            # JavaScript för att styra farten (1-10)
-            if st.session_state.scroll_speed > 0:
-                # Beräkna delay: Ju högre fart, desto kortare väntetid mellan stegen
-                # Fart 1 = 200ms, Fart 10 = 20ms
-                ms_delay = (11 - st.session_state.scroll_speed) * 20
-                
-                components.html(f"""
-                    <script>
-                    var container = window.parent.document.getElementById("song-box");
-                    if (container) {{
-                        var scrollInterval = setInterval(function() {{
-                            container.scrollTop += 1;
-                        }}, {ms_delay});
-                    }}
-                    </script>
-                """, height=0)
-
-else:
-    st.info("Inga låtar hittades i mappen 'library'.")
-
-st.sidebar.markdown("---")
-st.sidebar.write("Rock on! 🤘")
+        st.markdown(f"""
+            <div id="song-box" class="scroll-container">{display_text}</div>
+            {scroll_script}
+        """, unsafe_allow_html=True)

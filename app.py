@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 
-# 1. Konfiguration
+# 1. Inställningar
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -11,149 +11,110 @@ st.set_page_config(
 )
 
 # --- FUNKTIONER ---
-
 def get_image_base64(path):
     if os.path.exists(path):
-        try:
-            with open(path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode()
-        except: return ""
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
     return ""
 
-def get_all_songs(directory):
-    song_list = []
-    if os.path.exists(directory):
-        for root, dirs, files in os.walk(directory):
-            for f in files:
-                if f.endswith(".md"):
-                    title = f.replace(".md", "").replace("_", " ").strip().capitalize()
-                    song_list.append({"title": title, "path": os.path.join(root, f)})
-    return sorted(song_list, key=lambda x: x["title"])
+def get_all_songs():
+    songs = []
+    if os.path.exists("library"):
+        for f in os.listdir("library"):
+            if f.endswith(".md"):
+                title = f.replace(".md", "").replace("_", " ").strip().capitalize()
+                songs.append({"title": title, "path": f})
+    return sorted(songs, key=lambda x: x["title"])
 
-# --- CSS (EXPERT-STYLING FÖR MÖRK RULLISTA) ---
-logo_b64 = get_image_base64("logo.png")
+# --- SESSION STATE ---
+if "active_song" not in st.session_state:
+    st.session_state.active_song = ""
+
+# Kolla om URL har ändrats (vår manuella router)
+query_params = st.query_params
+if "s" in query_params and query_params["s"] != st.session_state.active_song:
+    st.session_state.active_song = query_params["s"]
+
+# --- CSS & HEADER ---
+logo_data = get_image_base64("logo.png")
+songs = get_all_songs()
+
+# Skapa options-sträng för HTML
+options_html = "".join([f'<option value="{s["path"]}" {"selected" if s["path"] == st.session_state.active_song else ""}>{s["title"]}</option>' for s in songs])
 
 st.markdown(f"""
 <style>
-    /* Dölj allt Streamlit-standard */
-    header, footer, #MainMenu, [data-testid="stHeader"] {{ display: none !important; }}
+    /* DÖDA ALLT STREAMLIT-UI */
+    [data-testid="stHeader"], header, footer, #MainMenu {{ display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
-    .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+    .block-container {{ padding: 0 !important; }}
 
-    /* HEADER */
-    .nav-zone {{
+    /* FAST NAVIGERING */
+    .top-nav {{
         position: fixed;
-        top: 0; left: 0; width: 100%; height: 70px;
-        background: white; z-index: 999999;
-        display: flex; align-items: center; padding-left: 10px;
+        top: 0; left: 0; width: 100%; height: 65px;
+        background: white;
+        display: flex; align-items: center;
+        padding: 0 15px;
+        z-index: 999999;
         border-bottom: 1px solid #eee;
     }}
 
-    .logo-container {{
-        width: 85px; transform: rotate(-8deg);
-        margin-right: 15px; cursor: pointer;
+    .logo-link {{
+        width: 80px;
+        transform: rotate(-8deg);
+        margin-right: 20px;
+        cursor: pointer;
     }}
 
-    /* POSITIONERING AV RULLLISTA */
-    div[data-testid="stSelectbox"] {{
-        position: fixed !important;
-        top: 15px !important;
-        left: 110px !important;
-        width: 220px !important;
-        z-index: 1000000 !important;
-    }}
-
-    /* MÖRK RULLLISTA MED VIT TEXT */
-    div[data-testid="stSelectbox"] > div {{
-        background-color: #1e1e1e !important; /* Mörk bakgrund */
+    /* DEN RIKTIGA RULLISTAN (Svart/Vit & Keyboard-safe) */
+    .song-picker {{
+        background-color: #1a1a1a !important;
         color: white !important;
-        border: 2px solid #333 !important;
-        border-radius: 10px !important;
+        border: 2px solid #333;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 16px;
+        width: 220px;
+        outline: none;
+        -webkit-appearance: listbox; /* Tvingar fram mobilens hjul-väljare */
     }}
 
-    /* Tvinga all text inuti rullistan att vara vit */
-    div[data-testid="stSelectbox"] * {{
-        color: white !important;
-    }}
-
-    /* BLOCKERA TANGENTBORD: Gör input-fältet oklickbart */
-    div[data-testid="stSelectbox"] input {{
-        pointer-events: none !important;
-        caret-color: transparent !important;
-    }}
-
-    /* LÄSYTA */
-    .song-view {{
-        margin-top: 80px;
+    /* LÄSRUTAN (TABS-SÄKER) */
+    .lyrics-container {{
+        margin-top: 75px;
         padding: 20px;
         font-family: 'Roboto Mono', monospace !important;
-        font-size: 14px !important;
-        line-height: 1.2 !important;
-        white-space: pre !important; 
-        overflow-x: auto !important;
-        color: #000 !important;
-    }}
-
-    /* Knappar i listan */
-    div[data-testid="stButton"] > button {{
-        width: 100% !important;
-        background-color: #f8f8f8 !important;
-        border: 1px solid #ddd !important;
-        color: black !important;
-        padding: 15px !important;
-        font-weight: bold !important;
+        font-size: 14px;
+        line-height: 1.2;
+        white-space: pre;
+        color: #000;
+        background-color: #fff;
     }}
 </style>
+
+<div class="top-nav">
+    <a href="/" target="_self">
+        <img src="data:image/png;base64,{logo_data}" class="logo-link">
+    </a>
+    <select class="song-picker" onchange="window.location.href='/?s=' + this.value">
+        <option value="">Välj låt...</option>
+        {options_html}
+    </select>
+</div>
 """, unsafe_allow_html=True)
 
-# --- NAVIGATIONSLOGIK ---
-if "current_song" not in st.session_state:
-    st.session_state.current_song = None
-
-songs_dir = "library"
-all_songs = get_all_songs(songs_dir)
-titles = [s["title"] for s in all_songs]
-
-# --- HEADER ELEMENT ---
-st.markdown('<div class="nav-zone">', unsafe_allow_html=True)
-if logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="logo-img" style="width:85px; transform:rotate(-8deg);">', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Osynlig knapp ovanpå loggan för att gå hem
-st.markdown('<div style="position:fixed; top:10px; left:10px; width:85px; height:50px; z-index:1000001; cursor:pointer;">', unsafe_allow_html=True)
-if st.button(" ", key="home_btn", help="Hem"):
-    st.session_state.current_song = None
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
-
-# --- RULLLISTAN (Streamlit Native men stylad mörk) ---
-selected_title = st.selectbox(
-    "",
-    options=["Välj låt..."] + titles,
-    index=0 if st.session_state.current_song is None else titles.index(st.session_state.current_song["title"]) + 1,
-    label_visibility="collapsed"
-)
-
-if selected_title != "Välj låt...":
-    song_obj = next(s for s in all_songs if s["title"] == selected_title)
-    if st.session_state.current_song != song_obj:
-        st.session_state.current_song = song_obj
-        st.rerun()
-
 # --- INNEHÅLL ---
-if st.session_state.current_song:
-    path = st.session_state.current_song["path"]
+if st.session_state.active_song:
+    path = os.path.join("library", st.session_state.active_song)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-view">{content + ("\n" * 60)}</div>', unsafe_allow_html=True)
+        # Vi lägger till massor av rader i botten för att kunna scrolla fritt
+        st.markdown(f'<div class="lyrics-container">{content}{chr(10)*60}</div>', unsafe_allow_html=True)
+    else:
+        st.error("Låten hittades inte.")
 else:
-    # Startvy: Arkiv med knappar
-    st.markdown('<div style="height:100px;"></div>', unsafe_allow_html=True)
-    cols = st.columns(2)
-    for i, song in enumerate(all_songs):
-        with cols[i % 2]:
-            if st.button(song["title"], key=f"list_{i}"):
-                st.session_state.current_song = song
-                st.rerun()
+    # Startsidan - helt ren
+    st.markdown('<div style="height:150px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; color:#999; font-family:sans-serif;">Välj låt i menyn ovan för att börja giget.</div>', unsafe_allow_html=True)

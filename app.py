@@ -11,12 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Root och Library-hantering
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
 
-# Whitelist: Skanna /library för .md-filer
 def get_library():
     return sorted([f.stem for f in LIB_DIR.glob("*.md")])
 
@@ -25,36 +23,36 @@ def get_base64_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-# --- 2. THE STAGE-SAFE UI (CSS) ---
-# Vi injicerar CSS för att tvinga fram vit bakgrund, fixera headern och hantera monospace-tabs.
+# --- 2. THE STAGE-SAFE UI (LIGHT MODE ONLY) ---
 st.markdown(f"""
     <style>
-    /* Nollställ Streamlits standard-UI */
+    /* Tvinga ljus bakgrund i hela appen */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
     
+    /* Göm Streamlits standard-element */
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
     .main .block-container {{
-        padding-top: 90px !important;
-        padding-left: 15px !important;
-        padding-right: 15px !important;
+        padding-top: 100px !important;
+        padding-left: 20px !important;
+        padding-right: 20px !important;
         max-width: 100% !important;
     }}
 
-    /* FIXED HEADER */
+    /* FIXED HEADER (LJUS) */
     .stage-header {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 75px;
+        height: 85px;
         background-color: #ffffff;
-        border-bottom: 3px solid #000000;
+        border-bottom: 1px solid #eeeeee;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -62,112 +60,96 @@ st.markdown(f"""
         z-index: 999999;
     }}
 
-    /* LOGOTYP / HEM-KNAPP */
+    /* LOGOTYP (Stor & Rundad) */
     .logo-link {{
         transform: rotate(-8deg);
         text-decoration: none;
         display: block;
+        flex-shrink: 0;
     }}
     
     .logo-img {{
-        height: 50px;
+        height: 65px; 
         width: auto;
+        border-radius: 12px;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 24px;
-        color: #ffffff;
-        background: #000000;
-        padding: 5px 15px;
-        border: 2px solid #000000;
+        font-size: 26px;
+        color: #000000;
+        background: #ffffff;
+        padding: 8px 15px;
+        border: 3px solid #000000;
+        border-radius: 12px;
     }}
 
-    /* NATIVE SELECT (ANTI-KEYBOARD) */
+    /* NATIVE SELECT (LJUS & RUNDAD) */
     .nav-center {{
         flex-grow: 1;
         margin: 0 20px;
-        max-width: 50%;
+        max-width: 55%;
     }}
 
     .native-select {{
         width: 100%;
-        height: 45px;
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        padding: 0 10px;
-        font-size: 16px; /* 16px förhindrar auto-zoom på iOS */
+        height: 50px;
+        background-color: #ffffff;
+        color: #000000;
+        border: 2px solid #eeeeee;
+        border-radius: 15px; /* Rundade hörn */
+        padding: 0 15px;
+        font-size: 16px;
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
+        outline: none;
     }}
 
-    /* EXIT-KNAPP */
+    /* EXIT-KNAPP (LJUSGRÅ/SVART & RUNDAD) */
     .exit-btn {{
-        background-color: #ff0000;
-        color: #ffffff !important;
+        background-color: #f5f5f5;
+        color: #000000 !important;
         padding: 12px 20px;
-        border-radius: 4px;
+        border-radius: 15px; /* Rundade hörn */
         text-decoration: none;
-        font-weight: 800;
+        font-weight: 700;
         font-size: 14px;
         text-transform: uppercase;
-        border: none;
+        border: 1px solid #eeeeee;
+        flex-shrink: 0;
+    }}
+    
+    .exit-btn:active {{
+        background-color: #eeeeee;
     }}
 
     /* LÅT-BEHÅLLARE (TABS) */
     .tab-content {{
-        font-family: 'Roboto Mono', 'Courier New', monospace !important;
+        font-family: 'Roboto Mono', monospace !important;
         white-space: pre !important;
         overflow-x: auto !important;
         color: #000000 !important;
-        font-size: 18px;
-        line-height: 1.5;
-        padding-bottom: 60em; /* Motsvarar ca 60 tomma rader */
+        font-size: 20px;
+        line-height: 1.6;
+        padding-bottom: 70vh;
         -webkit-overflow-scrolling: touch;
     }}
 
-    /* ARKIV-GRID (STARTSIDA) */
-    .archive-grid {{
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 15px;
-        margin-top: 20px;
-    }}
-
-    .archive-item {{
-        background-color: #ffffff;
-        border: 4px solid #000000;
-        color: #000000 !important;
+    .landing-page {{
         text-align: center;
-        padding: 40px 10px;
-        text-decoration: none;
-        font-weight: 900;
-        font-size: 18px;
-        text-transform: uppercase;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 120px;
-    }}
-
-    .archive-item:active {{
-        background-color: #000000;
-        color: #ffffff !important;
+        margin-top: 20vh;
+        color: #dddddd;
     }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. LOGIC & NAVIGATION ---
-# Hantera URL-parametrar för låtval
-params = st.query_params
-active_song = params.get("song", None)
+query_params = st.query_params
+active_song = query_params.get("song", None)
 song_list = get_library()
 
 # --- 4. RENDER HEADER ---
-# Förbered loggan (Base64 för stabil rendering eller text-fallback)
 logo_html = '<div class="logo-fallback">PLAYIT</div>'
 if LOGO_PATH.exists():
     try:
@@ -176,13 +158,12 @@ if LOGO_PATH.exists():
     except:
         pass
 
-# Förbered HTML för rullistan
-options_html = '<option value="">VALD LÅT...</option>'
+# HTML-Select
+options_html = f'<option value="" {"selected" if not active_song else ""}>VÄLJ LÅT...</option>'
 for song in song_list:
     selected_attr = 'selected' if active_song == song else ''
     options_html += f'<option value="{song}" {selected_attr}>{song.upper()}</option>'
 
-# Injicera Header
 st.markdown(f"""
     <div class="stage-header">
         <a href="/" target="_self" class="logo-link">
@@ -199,38 +180,26 @@ st.markdown(f"""
 
 # --- 5. RENDER CONTENT ---
 if active_song and active_song in song_list:
-    # LÄS-LÄGE (Vyläge 2)
     file_path = LIB_DIR / f"{active_song}.md"
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
         
-        # Säkerställ padding med 60 tomma rader enligt manifestet
-        full_content = content + ("\n" * 60)
-        
-        st.markdown(f'<div class="tab-content">{full_content}</div>', unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"FEL VID LÄSNING: {e}")
+        st.markdown(f'<div class="tab-content">{content}</div>', unsafe_allow_html=True)
+    except Exception:
+        st.error("Kunde inte läsa filen.")
 else:
-    # STARTSIDA / ARKIV (Vyläge 1)
-    st.markdown("<h2 style='color:black; font-weight:900;'>ARKIV</h2>", unsafe_allow_html=True)
-    
-    if not song_list:
-        st.info("Inga .md-filer hittades i /library. Lägg till filer för att börja.")
-    else:
-        grid_html = '<div class="archive-grid">'
-        for song in song_list:
-            grid_html += f'<a href="?song={song}" target="_self" class="archive-item">{song}</a>'
-        grid_html += '</div>'
-        st.markdown(grid_html, unsafe_allow_html=True)
+    st.markdown("""
+        <div class="landing-page">
+            <h1 style="font-weight:900; color:#f0f0f0; font-size: 3rem;">PLAYIT LIVE</h1>
+            <p style="color:#cccccc;">ANVÄND MENYN OVAN</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- 6. AUTO-SCROLL TO TOP SCRIPT ---
-# Tvingar skärmen till toppen vid varje låtbyte
+# --- 6. AUTO-SCROLL TO TOP ---
 st.markdown("""
     <script>
     var mainContainer = window.parent.document.querySelector('.main');
-    if (mainContainer) {
-        mainContainer.scrollTop = 0;
-    }
+    if (mainContainer) { mainContainer.scrollTop = 0; }
     </script>
 """, unsafe_allow_html=True)

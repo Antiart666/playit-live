@@ -52,10 +52,11 @@ st.markdown(f"""
     header, footer, #MainMenu {{ visibility: hidden !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GÖR ALL TEXT SVART */
+    /* GÖR ALL TEXT SVART OCH VANLIG (INTE BARA VERSALER) */
     h1, h2, h3, p, span, div, label, li, button {{ 
         color: #000000 !important; 
-        font-family: 'Inter', sans-serif !important; 
+        font-family: 'Inter', sans-serif !important;
+        text-transform: none !important; /* Säkerställer vanlig text */
     }}
 
     .block-container {{
@@ -64,7 +65,7 @@ st.markdown(f"""
         background-color: #ffffff !important;
     }}
 
-    /* DEN SNEDSTÄLLDA LOGGAN */
+    /* DEN SNEDSTÄLLDA LOGGAN (Minskad 20%) */
     .logo-box {{
         position: fixed;
         top: 15px;
@@ -77,13 +78,13 @@ st.markdown(f"""
     .logo-box:hover {{ transform: rotate(-4deg) scale(1.05); }}
     
     .logo-img {{
-        width: 140px; /* Större och tydligare */
+        width: 110px; /* Justerad storlek (-20%) */
         height: auto;
     }}
 
     /* SKYDDSZON - FÖRHINDRAR ATT TEXT HAMNAR BAKOM LOGGAN */
     .app-header-spacer {{
-        height: 130px;
+        height: 110px;
         width: 100%;
         display: block;
     }}
@@ -132,8 +133,7 @@ if "current_path" not in st.session_state: st.session_state.current_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# --- LOGGAN SOM HEMKNAPP (STABIL VERSION) ---
-# Vi använder en osynlig Streamlit-knapp som är 100% driftsäker
+# --- LOGGAN SOM HEMKNAPP (Dold återställningsknapp) ---
 if st.sidebar.button("RESET APP", key="sidebar_reset"):
     st.session_state.view = "list"
     st.rerun()
@@ -145,7 +145,6 @@ if logo_b64:
             <img src="data:image/png;base64,{logo_b64}" class="logo-img">
         </div>
         <script>
-        // Ett litet skript som klickar på Streamlits reset-knapp när man trycker på loggan
         var logo = window.parent.document.getElementById("logo-home-trigger");
         if (logo) {{
             logo.onclick = function() {{
@@ -157,8 +156,7 @@ if logo_b64:
         </script>
     """, unsafe_allow_html=True)
 else:
-    # Om logo.png saknas på GitHub
-    st.error("Filen 'logo.png' saknas på GitHub! Ladda upp den i huvudmappen.")
+    st.error("Filen 'logo.png' saknas på GitHub!")
 
 # Spacer för att trycka ner innehållet under loggan
 st.markdown('<div class="app-header-spacer"></div>', unsafe_allow_html=True)
@@ -179,7 +177,9 @@ else:
             
             valid_songs = sorted([f for f in files if f.endswith(".md")])
             if valid_songs:
-                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:12px;">{category.upper()}</div>', unsafe_allow_html=True)
+                # Visar kategorinamnet snyggt
+                cat_display = category.capitalize()
+                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:12px; text-transform:uppercase;">{cat_display}</div>', unsafe_allow_html=True)
                 cols = st.columns(2)
                 for i, song_file in enumerate(valid_songs):
                     with cols[i % 2]:
@@ -222,7 +222,6 @@ else:
         # JavaScript för Dubbelklick & Scroll
         st.markdown(f"""
             <script>
-            // Hitta tillbaka-knappen och dölj den
             var btns = window.parent.document.querySelectorAll('button');
             var backBtn = Array.from(btns).find(b => b.innerText.includes("ARKIV"));
             if (backBtn) {{
@@ -234,7 +233,6 @@ else:
                 }});
             }}
 
-            // Scroll-logik
             var box = window.parent.document.getElementById("song-container-id");
             if (window.playitScroll) clearInterval(window.playitScroll);
             if ({st.session_state.scroll} > 0) {{

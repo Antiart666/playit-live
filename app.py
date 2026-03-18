@@ -1,66 +1,69 @@
 import streamlit as st
 import os
 
-# --- 1. SETUP ---
-st.set_page_config(page_title="PlayIt! v3.2", layout="wide", initial_sidebar_state="expanded")
+# Grundinställningar för mobilvänlighet
+st.set_page_config(
+    page_title="PlayIt Live",
+    page_icon="🎸",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Hitta rätt mapp oavsett om vi är på datorn eller i molnet
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LIB_PATH = os.path.join(BASE_DIR, "library")
-
-# Skapa mappen om den inte finns (så appen inte kraschar)
-if not os.path.exists(LIB_PATH):
-    os.makedirs(LIB_PATH)
-
-# --- 2. CSS (Mobiloptimerad) ---
+# Custom CSS för att hålla ihop texten och förhindra att den "rinner ut"
 st.markdown("""
     <style>
-    header {visibility: hidden !important;}
-    footer {visibility: hidden !important;}
-    .stApp { background-color: #1a1a1a; color: #e0e0e0; }
-    .song-title { color: #ffffff; font-weight: 800; font-size: 1.8rem; margin-bottom: 10px; }
-    .song-sheet { 
-        background-color: #111111; 
-        padding: 1.5rem; 
-        border-radius: 15px; 
-        border: 1px solid #333;
-        font-family: 'Consolas', monospace !important;
-        white-space: pre !important;
-        font-size: 1.1rem;
+    .song-text {
+        font-family: 'Courier New', Courier, monospace;
+        white-space: pre-wrap; /* Håller radbrytningar men bryter vid kanten */
+        word-wrap: break-word;
+        background-color: #1a1a1a;
+        color: #ffffff;
+        padding: 15px;
+        border-radius: 10px;
+        font-size: 14px;
         line-height: 1.4;
+        border: 1px solid #333;
     }
-    .song-sheet b, .song-sheet strong { color: #38bdf8 !important; }
+    /* Gör sidomenyn lite bredare på mobil för sökfältet */
+    section[data-testid="stSidebar"] {
+        width: 80% !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. FUNKTION FÖR ATT HITTA LÅTAR ---
-def get_songs():
-    # Listar alla .md-filer i library-mappen
-    files = [f for f in os.listdir(LIB_PATH) if f.endswith(".md")]
-    return sorted(files)
+st.title("🎸 PlayIt Live")
 
-# --- 4. SIDOMENY ---
-with st.sidebar:
-    st.markdown("## 🎸 PlayIt! v3.2")
-    låtar = get_songs()
-    
-    if not låtar:
-        st.warning(f"Inga låtar hittades i: {LIB_PATH}")
-        st.info("Lägg dina .md-filer i mappen 'library'.")
-        val = "🏠 Hem"
-    else:
-        val = st.selectbox("Välj låt", ["🏠 Hem"] + låtar)
+# Sökväg till mappen med låtar
+songs_dir = "library"
 
-# --- 5. HUVUDVY ---
-if val == "🏠 Hem":
-    st.title("Välkommen till PlayIt!")
-    st.write(f"Antal låtar i biblioteket: {len(låtar)}")
-    if not låtar:
-        st.error("Hittar inga låtar. Kontrollera att mappen 'library' innehåller .md-filer.")
+if not os.path.exists(songs_dir):
+    st.error(f"Mappen '{songs_dir}' hittades inte på GitHub!")
 else:
-    file_path = os.path.join(LIB_PATH, val)
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
+    # Hämta alla .md-filer
+    song_files = [f for f in os.listdir(songs_dir) if f.endswith(".md")]
     
-    st.markdown(f"<div class='song-title'>{val.replace('.md', '')}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='song-sheet'>{content}</div>", unsafe_allow_html=True)
+    if not song_files:
+        st.info("Ladda upp dina låtar (.md) i mappen 'library' på GitHub för att se dem här.")
+    else:
+        # Sidomeny för sök och val
+        st.sidebar.header("Mina Låtar")
+        search_term = st.sidebar.text_input("Sök låt eller artist...", "")
+        
+        # Filtrera låtar baserat på sökning
+        filtered_songs = [f for f in song_files if search_term.lower() in f.lower()]
+        
+        if filtered_songs:
+            selected_song = st.sidebar.selectbox("Välj en låt", sorted(filtered_songs))
+            
+            # Läs in och visa vald låt
+            with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
+                content = f.read()
+                
+            st.subheader(selected_song.replace(".md", ""))
+            # Här använder vi vår "song-text" klass för att hålla ihop allt
+            st.markdown(f'<div class="song-text">{content}</div>', unsafe_allow_html=True)
+        else:
+            st.sidebar.warning("Ingen låt matchar din sökning.")
+
+st.sidebar.markdown("---")
+st.sidebar.write("Tips: Använd sökfältet ovan för att snabbt hitta dina tabs!")

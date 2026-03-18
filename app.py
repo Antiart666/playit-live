@@ -19,12 +19,12 @@ def clean_title(filename):
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Laddar loggan säkert. Returnerar None om filen saknas istället för att krascha."""
+    """Laddar loggan säkert."""
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
                 return base64.b64encode(img_file.read()).decode()
-        except Exception:
+        except:
             return None
     return None
 
@@ -51,7 +51,7 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* DÖLJ STREAMLIT STANDARD-ELEMENT */
+    /* DÖLJ ALLT FRÅN STREAMLIT */
     header, footer, #MainMenu {{ visibility: hidden !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -68,14 +68,14 @@ st.markdown(f"""
         background-color: #ffffff !important;
     }}
 
-    /* ANIMATION: SVÄVANDE (FLOATING) */
+    /* ANIMATION: SVÄVANDE LOGGA */
     @keyframes floating {{
         0% {{ transform: rotate(-8deg) translateY(0px); }}
         50% {{ transform: rotate(-8deg) translateY(-5px); }}
         100% {{ transform: rotate(-8deg) translateY(0px); }}
     }}
 
-    /* LOGGAN SOM HEMKNAPP MED ANIMATION OCH REAKTION */
+    /* LOGGAN SOM DEN ENDA HEMKNAPPEN */
     div[data-testid="stButton"] > button[key="logo_home_btn"] {{
         position: fixed !important;
         top: 15px !important;
@@ -88,20 +88,15 @@ st.markdown(f"""
         background-size: contain !important;
         background-repeat: no-repeat !important;
         background-position: center !important;
-        background-color: { 'transparent' if logo_b64 else '#000' } !important;
+        background-color: transparent !important;
         
         border: none !important;
-        color: { 'transparent' if logo_b64 else '#fff' } !important;
+        color: transparent !important;
         box-shadow: none !important;
         cursor: pointer !important;
         
         animation: floating 3s ease-in-out infinite !important;
         transition: transform 0.1s ease-in-out !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        border-radius: 12px;
     }}
     
     div[data-testid="stButton"] > button[key="logo_home_btn"]:active {{
@@ -132,7 +127,7 @@ st.markdown(f"""
         white-space: pre-wrap;
     }}
 
-    /* ARKIV-KNAPPAR */
+    /* KNAPPAR I LISTAN */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -160,11 +155,11 @@ if "current_song_path" not in st.session_state: st.session_state.current_song_pa
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
 
-# --- LOGGAN (HEMKNAPPEN) ---
-# Om bilden saknas står det "HEM" på den svarta knappen istället
-logo_label = " " if logo_b64 else "HEM"
-if st.button(logo_label, key="logo_home_btn"):
+# --- LOGGAN (DEN ENDA HEMKNAPPEN) ---
+# När man trycker på loggan nollställer vi allt
+if st.button(" ", key="logo_home_btn"):
     st.session_state.view = "list"
+    st.session_state.current_song_path = ""
     st.rerun()
 
 st.markdown('<div class="app-top-spacer"></div>', unsafe_allow_html=True)
@@ -173,18 +168,16 @@ songs_dir = "library"
 
 # 3. Huvudlogik
 if not os.path.exists(songs_dir):
-    st.error(f"⚠️ Mappen '{songs_dir}' saknas! Skapa en mapp som heter library och lägg dina .md-filer där.")
+    st.error("⚠️ Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
-        # --- SIDA 1: LÅTLISTAN ---
-        found_any = False
+        # --- SIDA 1: LÅTLISTAN (Ingen rubrik enligt önskemål) ---
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
             if category == "library": category = "Mina Låtar"
             
             valid_songs = sorted([f for f in files if f.endswith(".md")])
             if valid_songs:
-                found_any = True
                 st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:11px; text-transform:uppercase; letter-spacing:1px;">{category}</div>', unsafe_allow_html=True)
                 cols = st.columns(2)
                 for idx, song_file in enumerate(valid_songs):
@@ -193,9 +186,6 @@ else:
                             st.session_state.current_song_path = os.path.join(root, song_file)
                             st.session_state.view = "song"
                             st.rerun()
-        
-        if not found_any:
-            st.info("Inga .md-filer hittades i mappen 'library'.")
 
         # --- VERKTYG LÄNGST NER ---
         st.markdown('<div class="bottom-tools">', unsafe_allow_html=True)
@@ -237,7 +227,6 @@ else:
 
             st.markdown(f'<div id="song-view-box" class="song-display-area">{scrolling_text}</div>', unsafe_allow_html=True)
         else:
-            st.error("Kunde inte hitta låtfilen. Gå tillbaka till arkivet.")
-            if st.button("Tillbaka"):
-                st.session_state.view = "list"
-                st.rerun()
+            # Om filen inte hittas, nollställ vyn automatiskt
+            st.session_state.view = "list"
+            st.rerun()

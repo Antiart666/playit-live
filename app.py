@@ -11,6 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Session State för blixtsnabb växling utan sidomladdning
+if "selected_song" not in st.session_state:
+    st.session_state.selected_song = None
+
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
@@ -28,13 +32,12 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: THE "NO-INPUT" ARCHITECTURE ---
+# --- 2. CSS: SPEED & NO-KEYBOARD ---
 st.markdown(f"""
     <style>
     /* Grundtema */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
-        color: #000000 !important;
     }}
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
@@ -48,7 +51,7 @@ st.markdown(f"""
         width: 100%;
         height: 140px;
         background: #ffffff;
-        z-index: 9999;
+        z-index: 999;
         border-bottom: 2px solid #f0f0f0;
     }}
 
@@ -58,80 +61,40 @@ st.markdown(f"""
         left: 15px;
         top: 5px;
         height: 130px;
-        width: auto;
+        z-index: 1000;
         transform: rotate(-6deg);
-        z-index: 10000;
     }}
 
     /* START-KNAPP (TOP-RIGHT) */
-    .start-link {{
-        position: fixed;
-        top: 25px;
-        right: 20px;
-        background-color: #000000;
-        color: #ffffff !important;
-        padding: 12px 25px;
-        border-radius: 50px;
-        font-weight: 900;
-        font-size: 14px;
-        text-decoration: none !important;
-        z-index: 10001;
-        text-transform: uppercase;
+    .stButton > button[kind="secondary"] {{
+        position: fixed !important;
+        top: 25px !important;
+        right: 20px !important;
+        background-color: #000 !important;
+        color: #fff !important;
+        border-radius: 50px !important;
+        padding: 10px 20px !important;
+        z-index: 1001 !important;
+        border: none !important;
     }}
 
-    /* CUSTOM HTML DROPDOWN (NO INPUT TAGS) */
-    .custom-dropdown {{
-        position: fixed;
-        top: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 35%;
-        z-index: 10002;
+    /* CENTER MENU (POPOVER) */
+    /* Vi använder Streamlits popover för att slippa input-fält helt */
+    div[data-testid="stPopover"] {{
+        position: fixed !important;
+        top: 30px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 1001 !important;
+        width: 35% !important;
     }}
-
-    /* Denna knapp triggar listan utan att vara ett textfält */
-    .dropbtn {{
-        width: 100%;
-        background-color: #ffffff;
-        color: #000;
-        padding: 12px;
-        font-size: 16px;
-        font-weight: 800;
-        border: 2px solid #000;
-        border-radius: 10px;
-        text-align: center;
-        cursor: pointer;
-    }}
-
-    .dropdown-content {{
-        display: none;
-        position: absolute;
-        background-color: #ffffff;
-        width: 100%;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 10003;
-        border-radius: 0 0 10px 10px;
-        border: 2px solid #000;
-        border-top: none;
-    }}
-
-    .dropdown-content a {{
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        font-weight: 600;
-        border-bottom: 1px solid #eee;
-    }}
-
-    .dropdown-content a:hover {{ background-color: #f1f1f1; }}
-
-    /* Visa menyn vid klick/hover (mobilvänligt) */
-    .custom-dropdown:active .dropdown-content, 
-    .custom-dropdown:focus-within .dropdown-content {{
-        display: block;
+    
+    div[data-testid="stPopover"] > button {{
+        width: 100% !important;
+        border: 2px solid #000 !important;
+        font-weight: 800 !important;
+        color: #000 !important;
+        background: #fff !important;
     }}
 
     /* SONG DISPLAY */
@@ -143,55 +106,47 @@ st.markdown(f"""
         white-space: pre-wrap !important;
         color: #000 !important;
         padding-bottom: 80vh;
-        width: 100%;
     }}
+    
+    /* Göm alla input-fält som Streamlit kan tänkas skapa i bakgrunden */
+    input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LOGIC & DATA ---
-song_map = get_songs()
-query_params = st.query_params
-active_song_file = query_params.get("song", None)
+# --- 3. RENDER UI ---
 
-# --- 4. RENDER UI ---
-
-# Header-platta
-st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
-
-# Logotyp
+# Header & Logo
 logo_b64 = get_logo_b64()
+st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:35px; z-index:10000;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:35px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
 
-# START-knapp
-st.markdown('<a href="/" target="_self" class="start-link">START</a>', unsafe_allow_html=True)
+# START-knapp (Reset)
+if st.button("START", kind="secondary"):
+    st.session_state.selected_song = None
+    st.rerun()
 
-# DEN NYA "TANGENTBORDSSÄKRA" MENYN
-# Vi bygger en dropdown med uteslutande <a>-taggar och <div>-taggar.
-current_display = format_name(active_song_file).upper() if active_song_file else "VÄLJ LÅT..."
+# DEN NYA MENYN (Popover = Inget tangentbord)
+song_map = get_songs()
+current_label = format_name(st.session_state.selected_song).upper() if st.session_state.selected_song else "VÄLJ LÅT..."
 
-links_html = ""
-for snyggt_namn, filnamn in song_map.items():
-    links_html += f'<a href="?song={filnamn}" target="_self">{snyggt_namn.upper()}</a>'
+with st.popover(current_label):
+    st.markdown("### Välj låt")
+    for snyggt_namn, filnamn in song_map.items():
+        # När du klickar här laddas låten omedelbart utan full sidomladdning
+        if st.button(snyggt_namn.upper(), key=filnamn, use_container_width=True):
+            st.session_state.selected_song = filnamn
+            st.rerun()
 
-st.markdown(f"""
-    <div class="custom-dropdown">
-        <button class="dropbtn">{current_display}</button>
-        <div class="dropdown-content">
-            {links_html}
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
-# --- 5. DISPLAY CONTENT ---
-if active_song_file:
-    path = LIB_DIR / f"{active_song_file}.md"
+# --- 4. DISPLAY CONTENT ---
+if st.session_state.selected_song:
+    path = LIB_DIR / f"{st.session_state.selected_song}.md"
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 
-# Scroll till toppen
+# Scroll-fix
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

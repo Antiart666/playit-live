@@ -2,41 +2,32 @@ import streamlit as st
 import os
 import re
 
-# Grundinställningar för mobilvänlighet
+# Grundinställningar
 st.set_page_config(
-    page_title="PlayIt Live PRO",
+    page_title="PlayIt Live ULTIMATE",
     page_icon="🎸",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- TRANSPONERINGSLOGIK ---
+# --- LOGIK FÖR TRANSPONERING ---
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 def transpose_chords(text, steps):
-    if steps == 0:
-        return text
-    
+    if steps == 0: return text
     def replace_chord(match):
         chord = match.group(0)
         base_chord = re.match(r"^[A-G][#b]?", chord).group(0)
         suffix = chord[len(base_chord):]
-        
-        # Normalisera b till #
         norm_map = {"Db": "C#", "Eb": "D#", "Gb": "F#", "Ab": "G#", "Bb": "A#"}
-        if base_chord in norm_map:
-            base_chord = norm_map[base_chord]
-        
+        if base_chord in norm_map: base_chord = norm_map[base_chord]
         if base_chord in CHORDS:
-            current_index = CHORDS.index(base_chord)
-            new_index = (current_index + steps) % 12
+            new_index = (CHORDS.index(base_chord) + steps) % 12
             return CHORDS[new_index] + suffix
         return chord
+    return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-    chord_pattern = r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b"
-    return re.sub(chord_pattern, replace_chord, text)
-
-# --- CSS FÖR UTSEENDE ---
+# --- CSS FÖR DESIGN ---
 st.markdown("""
     <style>
     .song-text {
@@ -54,94 +45,94 @@ st.markdown("""
     .stButton>button {
         width: 100%;
         border-radius: 10px;
-        height: 3em;
+        font-weight: bold;
+    }
+    .stop-btn>div>button {
+        background-color: #ff4b4b !important;
+        color: white !important;
     }
     .info-box {
         background-color: #262730;
         padding: 10px;
         border-radius: 8px;
         text-align: center;
-        margin-bottom: 10px;
         border: 1px solid #444;
+        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🎸 PlayIt Live PRO")
+st.title("🎸 PlayIt Live ULTIMATE")
+
+# Initiera session states
+if "transpose_steps" not in st.session_state: st.session_state.transpose_steps = 0
+if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
+if "last_song" not in st.session_state: st.session_state.last_song = ""
 
 songs_dir = "library"
 
 if not os.path.exists(songs_dir):
-    st.error(f"Mappen '{songs_dir}' hittades inte!")
+    st.error("Mappen 'library' saknas!")
 else:
-    song_files = [f for f in os.listdir(songs_dir) if f.endswith(".md")]
+    song_files = sorted([f for f in os.listdir(songs_dir) if f.endswith(".md")])
     
-    if not song_files:
-        st.info("Ladda upp låtar i mappen 'library' på GitHub.")
-    else:
-        # --- SIDOMENY ---
+    if song_files:
         st.sidebar.header("MENY")
-        search_term = st.sidebar.text_input("Sök låt/artist", "")
-        filtered_songs = [f for f in song_files if search_term.lower() in f.lower()]
+        search = st.sidebar.text_input("Sök låt", "")
+        filtered = [f for f in song_files if search.lower() in f.lower()]
         
-        if filtered_songs:
-            selected_song = st.sidebar.selectbox("Välj låt", sorted(filtered_songs))
+        if filtered:
+            selected_song = st.sidebar.selectbox("Välj låt", filtered)
             
-            # --- NY TRANSPONERINGSDEL ---
+            # Nollställ transponering om vi byter låt
+            if selected_song != st.session_state.last_song:
+                st.session_state.transpose_steps = 0
+                st.session_state.scroll_speed = 0
+                st.session_state.last_song = selected_song
+
+            # --- TRANSPONERINGSKONTROLLER ---
             st.sidebar.markdown("---")
             st.sidebar.subheader("Transponera")
+            orig_key = st.sidebar.selectbox("Original-tonart:", CHORDS)
             
-            # Välj start-tonart (för att visa pedagogiskt)
-            original_key = st.sidebar.selectbox("Låtens original-tonart:", CHORDS)
-            
-            # Knappar för att flytta upp/ner
-            col1, col2 = st.sidebar.columns(2)
-            if "transpose_steps" not in st.session_state:
-                st.session_state.transpose_steps = 0
-            
-            if col1.button("Sänk -1"):
-                st.session_state.transpose_steps -= 1
-            if col2.button("Höj +1"):
-                st.session_state.transpose_steps += 1
-            if st.sidebar.button("Nollställ"):
-                st.session_state.transpose_steps = 0
+            t_col1, t_col2 = st.sidebar.columns(2)
+            if t_col1.button("Sänk -1"): st.session_state.transpose_steps -= 1
+            if t_col2.button("Höj +1"): st.session_state.transpose_steps += 1
+            if st.sidebar.button("Nollställ Tonart"): st.session_state.transpose_steps = 0
 
-            # Räkna ut ny tonart
-            current_key_index = (CHORDS.index(original_key) + st.session_state.transpose_steps) % 12
-            new_key = CHORDS[current_key_index]
-            
-            # Visa pedagogisk info
-            st.sidebar.markdown(f"""
-                <div class="info-box">
-                    <small>Original: {original_key}</small><br>
-                    <strong>NY TONART: {new_key}</strong><br>
-                    <small>({st.session_state.transpose_steps} steg)</small>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # --- AUTO-SCROLL ---
+            new_key = CHORDS[(CHORDS.index(orig_key) + st.session_state.transpose_steps) % 12]
+            st.sidebar.markdown(f'<div class="info-box"><small>{orig_key} ➔ </small><strong>{new_key}</strong></div>', unsafe_allow_html=True)
+
+            # --- AUTO-SCROLL KONTROLLER ---
             st.sidebar.markdown("---")
             st.sidebar.subheader("Auto-scroll")
-            scroll_speed = st.sidebar.slider("Hastighet (0 = av)", 0, 10, 0)
             
-            # Läs in och bearbeta låten
+            s_col1, s_col2 = st.sidebar.columns(2)
+            if s_col1.button("Saktare"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
+            if s_col2.button("Snabbare"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
+            
+            st.sidebar.markdown(f'<div class="info-box">Fart: <strong>{st.session_state.scroll_speed}</strong></div>', unsafe_allow_html=True)
+            
+            st.sidebar.markdown('<div class="stop-btn">', unsafe_allow_html=True)
+            if st.sidebar.button("STOPPA SCROLL"):
+                st.session_state.scroll_speed = 0
+                st.rerun()
+            st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+            # --- VISA LÅTEN ---
             with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
                 content = f.read()
             
             content = transpose_chords(content, st.session_state.transpose_steps)
-                
             st.subheader(selected_song.replace(".md", ""))
 
-            # Scroll-logik
-            if scroll_speed > 0:
-                delay = (11 - scroll_speed) * 800
+            if st.session_state.scroll_speed > 0:
+                delay = (11 - st.session_state.scroll_speed) * 800
                 st.markdown(f"<script>setInterval(function() {{ window.scrollBy(0, 1); }}, {delay});</script>", unsafe_allow_html=True)
 
-            # Visa texten
             st.markdown(f'<div class="song-text">{content}</div>', unsafe_allow_html=True)
-            
         else:
-            st.sidebar.warning("Hittade ingen match.")
+            st.sidebar.warning("Ingen träff.")
 
 st.sidebar.markdown("---")
 st.sidebar.write("Rock on! 🤘")

@@ -14,12 +14,12 @@ st.set_page_config(
 # --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    """Gör EYE_OF_THE_TIGER till Eye of the tiger"""
+    """Gör filnamn till snygg text."""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Laddar loggan säkert"""
+    """Laddar loggan säkert för inbäddning."""
     if os.path.exists(path):
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -48,15 +48,15 @@ st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* TVINGA VITT TEMA OCH DÖLJ ALLT FRÅN STREAMLIT */
+    /* DÖLJ STREAMLIT STANDARD-ELEMENT */
     header, footer, #MainMenu {{ visibility: hidden !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GÖR ALL TEXT SVART OCH VANLIG (INTE BARA VERSALER) */
-    h1, h2, h3, p, span, div, label, li, button {{ 
+    /* GLOBAL TEXTSTIL */
+    * {{ 
         color: #000000 !important; 
         font-family: 'Inter', sans-serif !important;
-        text-transform: none !important; /* Säkerställer vanlig text */
+        text-transform: none !important;
     }}
 
     .block-container {{
@@ -65,32 +65,53 @@ st.markdown(f"""
         background-color: #ffffff !important;
     }}
 
-    /* DEN SNEDSTÄLLDA LOGGAN (Minskad 20%) */
-    .logo-box {{
-        position: fixed;
-        top: 15px;
-        left: 20px;
-        z-index: 99999;
-        transform: rotate(-8deg);
-        cursor: pointer;
-        transition: transform 0.2s;
-    }}
-    .logo-box:hover {{ transform: rotate(-4deg) scale(1.05); }}
-    
-    .logo-img {{
-        width: 110px; /* Justerad storlek (-20%) */
-        height: auto;
+    /* ANIMATION: SVÄVANDE (FLOATING) */
+    @keyframes floating {{
+        0% {{ transform: rotate(-8deg) translateY(0px); }}
+        50% {{ transform: rotate(-8deg) translateY(-5px); }}
+        100% {{ transform: rotate(-8deg) translateY(0px); }}
     }}
 
-    /* SKYDDSZON - FÖRHINDRAR ATT TEXT HAMNAR BAKOM LOGGAN */
-    .app-header-spacer {{
-        height: 110px;
+    /* LOGGAN SOM HEMKNAPP MED ANIMATION OCH REAKTION */
+    div[data-testid="stButton"] > button[key="logo_home_btn"] {{
+        position: fixed !important;
+        top: 15px !important;
+        left: 20px !important;
+        width: 110px !important;
+        height: 65px !important;
+        z-index: 99999 !important;
+        
+        background-image: url("data:image/png;base64,{logo_b64}") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-color: transparent !important;
+        
+        border: none !important;
+        color: transparent !important;
+        box-shadow: none !important;
+        cursor: pointer !important;
+        
+        /* Lägg till svävande animation */
+        animation: floating 3s ease-in-out infinite !important;
+        transition: transform 0.1s ease-in-out !important;
+    }}
+    
+    /* REAKTION VID KLICK (Krymper tillfälligt) */
+    div[data-testid="stButton"] > button[key="logo_home_btn"]:active {{
+        transform: rotate(-8deg) scale(0.9) !important;
+        animation: none !important; /* Stoppar svävandet vid tryck */
+    }}
+
+    /* MELLANRUM FÖR ATT UNDVIKA KAOS HÖGST UPP */
+    .app-top-spacer {{
+        height: 90px;
         width: 100%;
         display: block;
     }}
 
-    /* LÄSRUTAN (MAXAD) */
-    .song-wrapper {{
+    /* LÄSRUTAN (MAXIMERAD) */
+    .song-display-area {{
         height: 88vh; 
         width: 100%;
         overflow-y: auto;
@@ -105,7 +126,7 @@ st.markdown(f"""
         white-space: pre-wrap;
     }}
 
-    /* ARKIV-KNAPPAR */
+    /* KNAPPAR I LISTAN */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -116,8 +137,8 @@ st.markdown(f"""
         width: 100% !important;
     }}
 
-    /* VERKTYGSBOX LÄNGST NER */
-    .settings-tray {{
+    /* VERKTYGSPANEL */
+    .bottom-tools {{
         margin-top: 40px;
         padding: 25px;
         background-color: #fcfcfc;
@@ -129,117 +150,75 @@ st.markdown(f"""
 
 # 2. State Management
 if "view" not in st.session_state: st.session_state.view = "list"
-if "current_path" not in st.session_state: st.session_state.current_path = ""
+if "current_song_path" not in st.session_state: st.session_state.current_song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
-if "scroll" not in st.session_state: st.session_state.scroll = 0
+if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
 
-# --- LOGGAN SOM HEMKNAPP (Dold återställningsknapp) ---
-if st.sidebar.button("RESET APP", key="sidebar_reset"):
+# --- LOGGAN (DEN ENDA HEMKNAPPEN) ---
+if st.button(" ", key="logo_home_btn"):
     st.session_state.view = "list"
     st.rerun()
 
-# Logga och klick-skript
-if logo_b64:
-    st.markdown(f"""
-        <div class="logo-box" id="logo-home-trigger">
-            <img src="data:image/png;base64,{logo_b64}" class="logo-img">
-        </div>
-        <script>
-        var logo = window.parent.document.getElementById("logo-home-trigger");
-        if (logo) {{
-            logo.onclick = function() {{
-                var btns = window.parent.document.querySelectorAll('button');
-                var resetBtn = Array.from(btns).find(b => b.innerText.includes("RESET APP"));
-                if (resetBtn) resetBtn.click();
-            }};
-        }}
-        </script>
-    """, unsafe_allow_html=True)
-else:
-    st.error("Filen 'logo.png' saknas på GitHub!")
-
-# Spacer för att trycka ner innehållet under loggan
-st.markdown('<div class="app-header-spacer"></div>', unsafe_allow_html=True)
+st.markdown('<div class="app-top-spacer"></div>', unsafe_allow_html=True)
 
 songs_dir = "library"
 
-# 3. App-logik
+# 3. Huvudlogik
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas.")
+    st.error("Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
-        # --- SIDA 1: ARKIVET ---
-        st.header("Arkiv")
-        
+        # --- SIDA 1: LÅTLISTAN ---
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
             if category == "library": category = "Mina Låtar"
             
             valid_songs = sorted([f for f in files if f.endswith(".md")])
             if valid_songs:
-                # Visar kategorinamnet snyggt
-                cat_display = category.capitalize()
-                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:12px; text-transform:uppercase;">{cat_display}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:11px; text-transform:uppercase; letter-spacing:1px;">{category}</div>', unsafe_allow_html=True)
                 cols = st.columns(2)
-                for i, song_file in enumerate(valid_songs):
-                    with cols[i % 2]:
+                for idx, song_file in enumerate(valid_songs):
+                    with cols[idx % 2]:
                         if st.button(clean_title(song_file), key=os.path.join(root, song_file)):
-                            st.session_state.current_path = os.path.join(root, song_file)
+                            st.session_state.current_song_path = os.path.join(root, song_file)
                             st.session_state.view = "song"
                             st.rerun()
 
-        # --- INSTÄLLNINGAR LÄNGST NER ---
-        st.markdown('<div class="settings-tray">', unsafe_allow_html=True)
-        st.subheader("⚙️ Verktyg")
-        c1, c2 = st.columns(2)
-        with c1:
+        # --- VERKTYG LÄNGST NER ---
+        st.markdown('<div class="bottom-tools">', unsafe_allow_html=True)
+        st.subheader("⚙️ Inställningar")
+        v_col1, v_col2 = st.columns(2)
+        with v_col1:
             st.write("**Tonart**")
             t_m, t_p = st.columns(2)
             if t_m.button("- Ton", key="t_m"): st.session_state.transpose -= 1
             if t_p.button("+ Ton", key="t_p"): st.session_state.transpose += 1
             st.write(f"Steg: {st.session_state.transpose}")
-        with c2:
-            st.write("**Scroll**")
+        with v_col2:
+            st.write("**Auto-scroll**")
             s_m, s_p = st.columns(2)
-            if s_m.button("Saktare", key="s_m"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
-            if s_p.button("Snabbare", key="s_p"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
-            st.write(f"Fart: {st.session_state.scroll}")
+            if s_m.button("Sakta", key="s_m"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
+            if s_p.button("Fort", key="s_p"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
+            st.write(f"Fart: {st.session_state.scroll_speed}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         # --- SIDA 2: SCENLÄGET (Låten) ---
-        # Back-knapp som syns vid dubbelklick
-        if st.button("← ARKIV", key="manual_back_link"):
-            st.session_state.view = "list"
-            st.rerun()
-
-        with open(st.session_state.current_path, "r", encoding="utf-8") as f:
-            raw_text = f.read()
+        with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
+            raw_content = f.read()
         
-        content = transpose_chords(raw_text, st.session_state.transpose)
-        display_text = content + ("\n" * 50)
+        song_content = transpose_chords(raw_content, st.session_state.transpose)
+        scrolling_text = song_content + ("\n" * 55)
 
-        # JavaScript för Dubbelklick & Scroll
         st.markdown(f"""
             <script>
-            var btns = window.parent.document.querySelectorAll('button');
-            var backBtn = Array.from(btns).find(b => b.innerText.includes("ARKIV"));
-            if (backBtn) {{
-                var container = backBtn.parentElement.parentElement.parentElement;
-                container.style.display = 'none';
-                
-                window.parent.document.addEventListener('dblclick', function() {{
-                    container.style.display = (container.style.display === 'none') ? 'block' : 'none';
-                }});
-            }}
-
-            var box = window.parent.document.getElementById("song-container-id");
+            var box = window.parent.document.getElementById("song-view-box");
             if (window.playitScroll) clearInterval(window.playitScroll);
-            if ({st.session_state.scroll} > 0) {{
-                var speed = (11 - {st.session_state.scroll}) * 40;
-                window.playitScroll = setInterval(function() {{ if (box) box.scrollTop += 1; }}, speed);
+            if ({st.session_state.scroll_speed} > 0) {{
+                var speed = (11 - {st.session_state.scroll_speed}) * 40;
+                window.playitScroll = setInterval(function() {{ if (box) box.scrollTop += 1; }}, delay);
             }}
             </script>
         """, unsafe_allow_html=True)
 
-        st.markdown(f'<div id="song-container-id" class="song-wrapper">{display_text}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div id="song-view-box" class="song-display-area">{scrolling_text}</div>', unsafe_allow_html=True)

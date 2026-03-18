@@ -43,14 +43,14 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Logga till höger, LÅTAR-knapp till vänster) ---
+# --- DESIGN (Logga vänster, LÅTAR-knapp höger, båda med skugga) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* DÖLJ STANDARD-ELEMENT */
+    /* DÖLJ STANDARD-ELEMENT FRÅN STREAMLIT */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -64,11 +64,24 @@ st.markdown(f"""
         padding-right: 0.8rem !important;
     }}
 
-    /* LÅTAR-KNAPPEN (Uppe till vänster) */
-    div[data-testid="stButton"] > button[key="main_nav_btn"] {{
+    /* LOGGAN (Uppe till vänster, lutar -8 grader, med skugga) */
+    .nav-logo-fixed-left {{
         position: fixed !important;
         top: 20px !important;
         left: 20px !important;
+        width: 110px !important;
+        height: auto !important;
+        z-index: 999999 !important;
+        transform: rotate(-8deg) !important;
+        filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3)); /* Skugga på loggan */
+        pointer-events: none;
+    }}
+
+    /* LÅTAR-KNAPPEN (Uppe till höger, med skugga) */
+    div[data-testid="stButton"] > button[key="main_nav_btn"] {{
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
         width: 140px !important;
         height: 60px !important;
         z-index: 1000000 !important;
@@ -80,22 +93,11 @@ st.markdown(f"""
         color: #000000 !important;
         text-transform: uppercase !important;
         cursor: pointer !important;
-        box-shadow: 4px 4px 0px #000000 !important;
+        /* Dubbel skugga för både djup och tydlighet */
+        box-shadow: 4px 4px 10px rgba(0,0,0,0.2), 4px 4px 0px #000000 !important;
     }}
 
-    /* LOGGAN (Uppe till höger, lutar -8 grader) */
-    .nav-logo-fixed-right {{
-        position: fixed !important;
-        top: 20px !important;
-        right: 20px !important;
-        width: 110px !important;
-        height: auto !important;
-        z-index: 999999 !important;
-        transform: rotate(-8deg) !important;
-        pointer-events: none;
-    }}
-
-    /* SKYDD FÖR ARKIVLISTAN */
+    /* MELLANRUM FÖR ATT UNDVIKA ATT LISTAN HAMNAR BAKOM HEADER */
     .top-margin-barrier {{
         height: 110px;
         display: block;
@@ -109,9 +111,9 @@ st.markdown(f"""
         background-color: #ffffff !important;
         color: #000000 !important;
         padding: 5px !important;
-        border: none !important;
+        border: none !important; /* Ingen ram runt texten */
         
-        /* Monospace för perfekta tabs */
+        /* Monospace (Courier) för perfekta tabs */
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 14px !important; 
         line-height: 1.2 !important;
@@ -119,7 +121,7 @@ st.markdown(f"""
         overflow-x: auto !important;
     }}
 
-    /* ARKIV-KNAPPAR */
+    /* ARKIV-KNAPPAR I LISTAN */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
@@ -129,7 +131,7 @@ st.markdown(f"""
         width: 100% !important;
     }}
 
-    /* VERKTYGSBOX */
+    /* VERKTYGSBOX LÄNGST NER */
     .settings-tray {{
         margin: 40px 10px;
         padding: 25px;
@@ -142,20 +144,20 @@ st.markdown(f"""
 
 # --- 2. LOGIK & STATE ---
 if "view" not in st.session_state: st.session_state.view = "list"
-if "current_song" not in st.session_state: st.session_state.current_song = ""
+if "current_song_path" not in st.session_state: st.session_state.current_song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
 
-# RITA LOGGAN (Till höger)
+# RITA LOGGAN (Vänster)
 if logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo-fixed-right">', unsafe_allow_html=True)
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo-fixed-left">', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="nav-logo-fixed-right" style="font-weight:900;">LOGO</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-logo-fixed-left" style="font-weight:900;">LOGO</div>', unsafe_allow_html=True)
 
-# RITA NAV-KNAPPEN (Till vänster)
+# RITA NAV-KNAPPEN (Höger)
 if st.button("LÅTAR", key="main_nav_btn"):
     st.session_state.view = "list"
-    st.session_state.current_song = ""
+    st.session_state.current_song_path = ""
     st.rerun()
 
 songs_dir = "library"
@@ -163,7 +165,7 @@ songs_dir = "library"
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' hittades inte.")
+    st.error("Mappen 'library' hittades inte. Kontrollera din GitHub-struktur.")
 else:
     if st.session_state.view == "list":
         # ARKIVVYN
@@ -179,39 +181,43 @@ else:
                 cols = st.columns(2)
                 for i, f in enumerate(valid_files):
                     with cols[i % 2]:
-                        if st.button(clean_title(f), key=os.path.join(root, f)):
-                            st.session_state.current_song = os.path.join(root, f)
+                        full_path = os.path.join(root, f)
+                        if st.button(clean_title(f), key=full_path):
+                            st.session_state.current_song_path = full_path
                             st.session_state.view = "song"
                             st.rerun()
 
-        # VERKTYG
+        # VERKTYGSPANEL
         st.markdown('<div class="settings-tray">', unsafe_allow_html=True)
         st.subheader("⚙️ Verktyg")
         c1, c2 = st.columns(2)
         with c1:
             st.write("Tonart")
-            if st.button("-", key="t_m"): st.session_state.transpose -= 1
-            if st.button("+", key="t_p"): st.session_state.transpose += 1
+            t1, t2 = st.columns(2)
+            if t1.button("-", key="t_m"): st.session_state.transpose -= 1
+            if t2.button("+", key="t_p"): st.session_state.transpose += 1
             st.write(f"Steg: {st.session_state.transpose}")
         with c2:
             st.write("Scroll")
-            if st.button("Sakta", key="s_m"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
-            if st.button("Fort", key="s_p"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
+            s1, s2 = st.columns(2)
+            if s1.button("Sakta", key="s_m"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
+            if s2.button("Fort", key="s_p"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
             st.write(f"Fart: {st.session_state.scroll_speed}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         # SCENVYN (Låten)
-        st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
+        # Sänker rutan något så att de flytande knapparna inte skymmer första raden
+        st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
         
-        if os.path.exists(st.session_state.current_song):
-            with open(st.session_state.current_song, "r", encoding="utf-8") as f:
+        if os.path.exists(st.session_state.current_song_path):
+            with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
                 content = f.read()
             
             content = transpose_chords(content, st.session_state.transpose)
-            full_text = content + ("\n" * 60)
+            full_text = content + ("\n" * 65)
 
-            # Auto-scroll (Säkrad fix för mobilstabilitet)
+            # Auto-scroll-skript
             if st.session_state.scroll_speed > 0:
                 delay = (11 - st.session_state.scroll_speed) * 45
                 st.markdown(f"""

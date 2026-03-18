@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import re
+import streamlit.components.v1 as components
 
 # Grundinställningar
 st.set_page_config(
@@ -38,18 +39,16 @@ st.markdown("""
         color: #ffffff;
         padding: 20px;
         border-radius: 12px;
-        font-size: 16px;
-        line-height: 1.5;
+        font-size: 18px; /* Lite större för scenen */
+        line-height: 1.6;
         border: 2px solid #444;
+        margin-bottom: 300px; /* Extra utrymme i botten så man kan scrolla hela vägen ut */
     }
     .stButton>button {
         width: 100%;
         border-radius: 10px;
         font-weight: bold;
-    }
-    .stop-btn>div>button {
-        background-color: #ff4b4b !important;
-        color: white !important;
+        height: 3.5em;
     }
     .info-box {
         background-color: #262730;
@@ -84,24 +83,20 @@ else:
         if filtered:
             selected_song = st.sidebar.selectbox("Välj låt", filtered)
             
-            # Nollställ transponering om vi byter låt
             if selected_song != st.session_state.last_song:
                 st.session_state.transpose_steps = 0
                 st.session_state.scroll_speed = 0
                 st.session_state.last_song = selected_song
 
-            # --- TRANSPONERINGSKONTROLLER ---
+            # --- TRANSPONERING ---
             st.sidebar.markdown("---")
             st.sidebar.subheader("Transponera")
             orig_key = st.sidebar.selectbox("Original-tonart:", CHORDS)
-            
             t_col1, t_col2 = st.sidebar.columns(2)
             if t_col1.button("Sänk -1"): st.session_state.transpose_steps -= 1
             if t_col2.button("Höj +1"): st.session_state.transpose_steps += 1
-            if st.sidebar.button("Nollställ Tonart"): st.session_state.transpose_steps = 0
-
             new_key = CHORDS[(CHORDS.index(orig_key) + st.session_state.transpose_steps) % 12]
-            st.sidebar.markdown(f'<div class="info-box"><small>{orig_key} ➔ </small><strong>{new_key}</strong></div>', unsafe_allow_html=True)
+            st.sidebar.markdown(f'<div class="info-box"><strong>{new_key}</strong></div>', unsafe_allow_html=True)
 
             # --- AUTO-SCROLL KONTROLLER ---
             st.sidebar.markdown("---")
@@ -113,11 +108,10 @@ else:
             
             st.sidebar.markdown(f'<div class="info-box">Fart: <strong>{st.session_state.scroll_speed}</strong></div>', unsafe_allow_html=True)
             
-            st.sidebar.markdown('<div class="stop-btn">', unsafe_allow_html=True)
-            if st.sidebar.button("STOPPA SCROLL"):
+            if st.sidebar.button("STOPPA ALLT", type="primary"):
                 st.session_state.scroll_speed = 0
+                st.session_state.transpose_steps = 0
                 st.rerun()
-            st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
             # --- VISA LÅTEN ---
             with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
@@ -126,9 +120,23 @@ else:
             content = transpose_chords(content, st.session_state.transpose_steps)
             st.subheader(selected_song.replace(".md", ""))
 
+            # --- NY SCROLL-INJEKTION ---
             if st.session_state.scroll_speed > 0:
-                delay = (11 - st.session_state.scroll_speed) * 800
-                st.markdown(f"<script>setInterval(function() {{ window.scrollBy(0, 1); }}, {delay});</script>", unsafe_allow_html=True)
+                # Beräkna hastighet: Högre fart = kortare delay
+                ms_delay = (11 - st.session_state.scroll_speed) * 50 
+                
+                components.html(f"""
+                    <script>
+                    var scrollInterval;
+                    function startScroll() {{
+                        clearInterval(scrollInterval);
+                        scrollInterval = setInterval(function() {{
+                            window.parent.window.scrollBy(0, 1);
+                        }}, {ms_delay});
+                    }}
+                    startScroll();
+                    </script>
+                """, height=0)
 
             st.markdown(f'<div class="song-text">{content}</div>', unsafe_allow_html=True)
         else:

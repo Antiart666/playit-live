@@ -12,14 +12,11 @@ st.set_page_config(
 
 # --- HJÄLPFUNKTIONER ---
 
-# Funktion för att snygga till titlar (t.ex. EYE_OF_THE_TIGER -> Eye of the tiger)
 def clean_title(filename):
     name = filename.replace(".md", "")
-    name = name.replace("_", " ") # Ta bort understreck
-    # Gör allt till gemener först, sen stor bokstav på första ordet
+    name = name.replace("_", " ")
     return name.strip().capitalize()
 
-# Transponeringslogik
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 def transpose_chords(text, steps):
@@ -36,7 +33,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Rundade hörn, Inter-font, Vit/Svart kontrast) ---
+# --- DESIGN (Maximerad läsyta och rundade hörn) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -47,78 +44,75 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* Snedställd logga med rundade hörn */
+    /* MINIMERA MARGINALERNA RUNT APPEN */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 98% !important;
+    }
+
+    /* LOGGA (Snedställd) */
     .logo-container {
         position: absolute;
-        top: 0px;
+        top: -10px;
         left: 20px;
         z-index: 1000;
         transform: rotate(-8deg);
         background: #000000;
         padding: 8px 18px;
         border-radius: 12px;
-        border: 2px solid #000000;
     }
     
     .logo-text {
         color: #ffffff;
         font-weight: 900;
-        font-size: 22px;
+        font-size: 20px;
         text-transform: uppercase;
     }
 
-    /* Låt-boxen med mjuka runda hörn */
+    /* DEN MAXIMERADE LÄSRUTAN */
     .song-container {
-        height: 70vh;
+        height: 82vh; /* Ökat från 70vh till 82vh */
+        width: 100%;
         overflow-y: auto;
         background-color: #ffffff;
         color: #000000;
-        padding: 25px;
-        border: 2px solid #000000;
-        border-radius: 25px; /* RUNDADE HÖRN */
-        margin-top: 20px;
+        padding: 30px;
+        border: 3px solid #000000;
+        border-radius: 30px; /* Ännu rundare hörn */
+        margin-top: 10px;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 18px;
+        font-size: 20px; /* Något större text för bättre sikt */
         line-height: 1.6;
         white-space: pre-wrap;
+        box-shadow: 10px 10px 0px #f0f0f0; /* Lite djup */
     }
 
-    /* Knappar med runda hörn */
+    /* KNAPPAR */
     .stButton>button {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
-        border-radius: 20px !important; /* RUNDADE HÖRN */
+        border-radius: 20px !important;
         font-weight: 700 !important;
-        height: 3.8em !important;
-        transition: all 0.2s ease;
+        height: 3.5em !important;
     }
 
-    .stButton>button:hover {
-        background-color: #f0f0f0 !important;
-        transform: scale(1.02);
-    }
-
-    /* Sökfältet med runda hörn */
+    /* SÖKFÄLT */
     input {
         border: 2px solid #000000 !important;
-        border-radius: 20px !important; /* RUNDADE HÖRN */
-        padding: 12px 20px !important;
+        border-radius: 20px !important;
     }
 
-    /* Sidomeny med runda hörn på elementen */
-    section[data-testid="stSidebar"] {
-        background-color: #f9f9f9 !important;
-        border-right: 1px solid #ddd;
-    }
-
+    /* STATUSBOXAR I MENYN */
     .status-box {
         border: 2px solid #000000;
-        padding: 12px;
-        border-radius: 15px; /* RUNDADE HÖRN */
+        padding: 10px;
+        border-radius: 15px;
         text-align: center;
         font-weight: 700;
-        margin-bottom: 10px;
         background: #ffffff;
     }
     </style>
@@ -126,7 +120,7 @@ st.markdown("""
 
 # 2. Initiera App
 st.markdown('<div class="logo-container"><div class="logo-text">PLAYIT</div></div>', unsafe_allow_html=True)
-st.write("") 
+st.write("") # Spacer
 
 if "view" not in st.session_state: st.session_state.view = "list"
 if "current_song" not in st.session_state: st.session_state.current_song = ""
@@ -144,14 +138,13 @@ else:
         # --- ARKIV-VY ---
         st.title("Arkiv")
         search = st.text_input("Sök låt...", "")
-        
-        # Filtrera baserat på både filnamn och snygg titel
         filtered = [f for f in song_files if search.lower() in f.lower() or search.lower() in clean_title(f).lower()]
         
         st.write("---")
         
+        # Visa låtar i en snygg grid
+        cols = st.columns(1) # Kan ändras till 2 för desktop om önskat
         for s in filtered:
-            # Använd clean_title för att visa snygga namn på knapparna
             if st.button(clean_title(s)):
                 st.session_state.current_song = s
                 st.session_state.transpose = 0
@@ -161,12 +154,13 @@ else:
     
     else:
         # --- LÅT-VY ---
-        if st.button("← TILLBAKA"):
-            st.session_state.view = "list"
-            st.rerun()
-            
-        # Visa den snygga titeln som rubrik
-        st.header(clean_title(st.session_state.current_song))
+        col_back, col_title = st.columns([1, 4])
+        with col_back:
+            if st.button("←"):
+                st.session_state.view = "list"
+                st.rerun()
+        with col_title:
+            st.subheader(clean_title(st.session_state.current_song))
 
         # Kontroller i sidomenyn
         st.sidebar.title("KONTROLLER")
@@ -189,14 +183,14 @@ else:
             st.session_state.scroll = 0
             st.rerun()
 
-        # Läs och transponera
+        # Läs och bearbeta
         with open(os.path.join(songs_dir, st.session_state.current_song), "r", encoding="utf-8") as f:
             raw_text = f.read()
         
         processed_text = transpose_chords(raw_text, st.session_state.transpose)
-        display_text = processed_text + ("\n" * 35)
+        display_text = processed_text + ("\n" * 40) # Mer luft i botten
 
-        # Scroll-skript (samma säkra metod som förut)
+        # Scroll-skript
         scroll_js = ""
         if st.session_state.scroll > 0:
             delay = (11 - st.session_state.scroll) * 35

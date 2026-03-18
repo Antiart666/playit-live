@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# State-hantering för att undvika URL-strul
 if "current_song" not in st.session_state:
     st.session_state.current_song = "VÄLJ LÅT..."
 
@@ -26,89 +25,87 @@ def get_songs():
     files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
     return {format_name(f): f for f in files}
 
-def get_logo():
+def get_logo_b64():
     if LOGO_PATH.exists():
         with open(LOGO_PATH, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. DEN "HÅRDA" STYLINGEN (CSS) ---
+# --- 2. CSS: FIXED UI & ANTI-KEYBOARD ---
 st.markdown(f"""
     <style>
-    /* 1. Tvinga vit scen-bakgrund */
+    /* Bakgrund & Grund */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
 
-    /* 2. Göm ALLT Streamlit-skräp */
-    [data-testid="stHeader"], [data-testid="stToolbar"], footer, [data-testid="stSidebarNav"] {{
+    /* Dölj Streamlit-menyer */
+    [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
-    /* 3. Den fasta headern i toppen */
+    /* FIXED NAVBAR */
     .nav-bar {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 100px;
+        height: 130px;
         background: #ffffff;
         border-bottom: 1px solid #eeeeee;
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        padding: 0 15px;
+        z-index: 999990;
     }}
 
-    /* 4. LOGGAN (Vänster) */
+    /* LOGO (+20% STÖRRE) */
     .logo-box {{
-        position: absolute;
+        position: fixed;
         left: 15px;
         top: 10px;
         transform: rotate(-8deg);
+        z-index: 999999;
     }}
-    .logo-img {{ height: 80px; width: auto; }}
-    .logo-text {{ 
-        font-weight: 900; font-size: 24px; border: 3px solid #000; 
-        padding: 5px 10px; border-radius: 10px; 
+    .logo-img {{ height: 110px; width: auto; }} /* Ökad från 80px/90px */
+    .logo-fallback {{ 
+        font-weight: 900; font-size: 32px; border: 4px solid #000; 
+        padding: 8px 15px; border-radius: 12px; background: #fff;
     }}
 
-    /* 5. RULLISTEN (Center + 35% bredd + INGET TANGENTBORD) */
-    /* Vi positionerar Streamlits widget exakt över vår nav-bar */
+    /* RULLIST (35% BREDD + TOP-ALIGNED) */
     div[data-testid="stSelectbox"] {{
         position: fixed !important;
-        top: 20px !important;
+        top: 15px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: 35% !important;
         z-index: 1000001 !important;
     }}
-    
-    /* ELIMINERA TANGENTBORD: Gör input-fältet osynligt för klick men behåll containern */
+
+    /* TANGENTBORDS-DÖDARE (Shield Layer) */
+    /* Vi blockerar alla pek-händelser på det inre textfältet */
     div[data-baseweb="select"] input {{
         pointer-events: none !important;
-        caret-color: transparent !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
     }}
-
-    /* 6. EXIT-KNAPPEN (Uppe till höger) */
+    
+    /* EXIT-KNAPP (TOP-RIGHT) */
     .stButton > button {{
         position: fixed !important;
-        top: 25px !important;
+        top: 15px !important;
         right: 15px !important;
-        width: auto !important;
-        background-color: #f5f5f5 !important;
+        background-color: #f8f8f8 !important;
         color: #000000 !important;
         border-radius: 15px !important;
         border: 1px solid #ddd !important;
+        padding: 8px 18px !important;
         font-weight: 800 !important;
-        z-index: 1000001 !important;
-        padding: 10px 20px !important;
+        z-index: 1000005 !important;
     }}
 
-    /* 7. TEXT-CONTAINER (Din specifikation) */
+    /* SONG DISPLAY (DIN SPEC) */
     .song-display {{
-        margin-top: 120px;
+        margin-top: 150px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
@@ -120,28 +117,27 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDERING ---
+# --- 3. RENDER UI ---
 
-# Rita Headern (Visuellt för loggan)
-logo_b64 = get_logo()
-logo_content = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">' if logo_b64 else '<span class="logo-text">PLAYIT</span>'
+# Rita Header/Logo
+logo_b64 = get_logo_b64()
+if logo_b64:
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">'
+else:
+    logo_html = '<div class="logo-fallback">PLAYIT</div>'
 
-st.markdown(f"""
-    <div class="nav-bar">
-        <div class="logo-box">{logo_content}</div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(f'<div class="nav-bar"><div class="logo-box">{logo_html}</div></div>', unsafe_allow_html=True)
 
-# Ladda låtlista
+# Ladda låtar
 song_map = get_songs()
 options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
-# Placera EXIT-knappen högst upp till höger
+# EXIT-knapp
 if st.button("EXIT"):
     st.session_state.current_song = "VÄLJ LÅT..."
     st.rerun()
 
-# Placera Rullistan i mitten (35% bredd)
+# Rullista (35% bredd)
 selected = st.selectbox(
     "Välj låt",
     options=options,
@@ -149,12 +145,11 @@ selected = st.selectbox(
     label_visibility="collapsed"
 )
 
-# Vid ändring av låt
 if selected != st.session_state.current_song:
     st.session_state.current_song = selected
     st.rerun()
 
-# --- 4. VISA INNEHÅLL ---
+# --- 4. RENDER CONTENT ---
 if st.session_state.current_song != "VÄLJ LÅT...":
     file_name = song_map[st.session_state.current_song]
     path = LIB_DIR / f"{file_name}.md"
@@ -162,12 +157,9 @@ if st.session_state.current_song != "VÄLJ LÅT...":
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        
-        # Rendera med din specifikation
-        st.markdown(f'<div class="song-display">{content}\n' + ('\n' * 60) + '</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-display">{content}</div>', unsafe_allow_html=True)
 else:
-    # Startsida helt tom
     st.empty()
 
-# Scroll-fix
+# Scroll-fix till toppen
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

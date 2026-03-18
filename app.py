@@ -11,6 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Initiera session state för låtval om det inte finns
+if "active_song_file" not in st.session_state:
+    st.session_state.active_song_file = None
+
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
@@ -21,6 +25,7 @@ def format_song_name(name):
 
 def get_library_map():
     files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
+    # Skapa en dictionary: { "Snyggt Namn": "filnamn" }
     return {format_song_name(f): f for f in files}
 
 def get_base64_bin_file(bin_file):
@@ -43,7 +48,7 @@ st.markdown(f"""
     }}
 
     .main .block-container {{
-        padding-top: 140px !important; 
+        padding-top: 130px !important; 
         padding-left: 10px !important;
         padding-right: 10px !important;
     }}
@@ -54,13 +59,13 @@ st.markdown(f"""
         top: 0;
         left: 0;
         width: 100%;
-        height: 120px; 
+        height: 110px; 
         background-color: #ffffff;
         border-bottom: 1px solid #eeeeee;
         display: flex;
-        align-items: flex-start; /* Justerat till överkant */
+        align-items: flex-start;
         justify-content: space-between;
-        padding: 10px 15px;
+        padding: 5px 15px;
         z-index: 999999;
     }}
 
@@ -69,58 +74,46 @@ st.markdown(f"""
         transform: rotate(-8deg);
         flex-shrink: 0;
         margin-top: 5px;
+        cursor: pointer;
     }}
     
     .logo-img {{
-        height: 100px; 
+        height: 90px; 
         width: auto;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 30px;
+        font-size: 28px;
         color: #000000;
         border: 4px solid #000000;
-        padding: 5px 15px;
+        padding: 5px 12px;
         border-radius: 10px;
     }}
 
-    /* NATIVE SELECT (TANGENTBORDS-SPÄRR) */
-    .nav-center {{
-        width: 35%; /* Minskad bredd enligt önskemål */
-        margin-top: 15px; /* Placerad i överkant */
+    /* TANGENTBORDS-SPÄRR FÖR SELECTBOX */
+    /* Detta döljer markören och gör fältet oklickbart för textinmatning */
+    div[data-baseweb="select"] input {{
+        caret-color: transparent !important;
+        pointer-events: none !important;
     }}
-
-    .native-select {{
-        width: 100%;
-        height: 45px;
-        background-color: #ffffff;
-        color: #000000;
-        border: 2px solid #dddddd;
-        border-radius: 12px;
-        padding: 0 10px;
-        font-size: 16px; /* 16px krävs för att iOS inte ska auto-zooma */
-        appearance: none;
-        -webkit-appearance: none;
-        cursor: pointer;
-        outline: none;
+    
+    /* Justera bredden på Streamlits selectbox-container */
+    .stSelectbox {{
+        width: 35% !important;
+        position: fixed !important;
+        top: 15px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 1000000 !important;
     }}
 
     /* EXIT-KNAPP */
-    .exit-container {{
-        margin-top: 15px;
-    }}
-
-    .exit-link {{
-        background-color: #f5f5f5;
-        color: #000000 !important;
-        padding: 10px 20px;
-        border-radius: 12px;
-        text-decoration: none;
-        font-weight: 800;
-        font-size: 13px;
-        text-transform: uppercase;
-        border: 1px solid #dddddd;
+    .exit-btn-fixed {{
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        z-index: 1000000;
     }}
 
     /* SONG TEXT CONTAINER */
@@ -131,56 +124,81 @@ st.markdown(f"""
         white-space: pre-wrap !important; 
         word-wrap: break-word !important; 
         color: #000000 !important;
-        padding-bottom: 70vh;
+        padding-top: 20px;
+        padding-bottom: 75vh;
     }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. DATA & NAVIGATION ---
+# --- 3. DATA & LOGIC ---
 song_map = get_library_map()
-query_params = st.query_params
-active_song = query_params.get("song", None)
+# Vänd på mappen för att kunna slå upp snyggt namn från filnamn
+inv_song_map = {v: k for k, v in song_map.items()}
 
-# --- 4. RENDER HEADER ---
+# Hitta index för nuvarande låt i rullistan
+options = ["VÄLJ LÅT..."] + list(song_map.keys())
+current_index = 0
+if st.session_state.active_song_file in inv_song_map:
+    current_index = options.index(inv_song_map[st.session_state.active_song_file])
+
+# --- 4. RENDER HEADER (VISUALS ONLY) ---
 logo_b64 = get_base64_bin_file(LOGO_PATH)
 logo_html = f'<div class="logo-fallback">PLAYIT</div>'
 if logo_b64:
     logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">'
 
-# Bygg HTML-options för native select
-options_html = f'<option value="">VÄLJ LÅT...</option>'
-for snyggt_namn, filnamn in song_map.items():
-    is_selected = "selected" if active_song == filnamn else ""
-    options_html += f'<option value="{filnamn}" {is_selected}>{snyggt_namn.upper()}</option>'
-
-# Injicera Header med Native HTML Select (tangentbordssäkert)
 st.markdown(f"""
     <div class="stage-header">
-        <div class="logo-container">
-            <a href="/" target="_self" style="text-decoration:none;">{logo_html}</a>
-        </div>
-        <div class="nav-center">
-            <select class="native-select" onchange="window.location.href='?song=' + encodeURIComponent(this.value)">
-                {options_html}
-            </select>
-        </div>
-        <div class="exit-container">
-            <a href="/" target="_self" class="exit-link">EXIT</a>
-        </div>
+        <div class="logo-container">{logo_html}</div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 5. RENDER CONTENT ---
-if active_song and active_song in [v for k, v in song_map.items()]:
-    file_path = LIB_DIR / f"{active_song}.md"
+# --- 5. FUNCTIONAL WIDGETS ---
+# Exit-knapp (använder Streamlit-knapp för stabilitet men stylad som länk)
+with st.container():
+    col_exit = st.columns([1, 1, 1])
+    with col_exit[2]:
+        st.markdown('<div class="exit-btn-fixed">', unsafe_allow_html=True)
+        if st.button("EXIT", key="exit_btn"):
+            st.session_state.active_song_file = None
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # Rullistan (Centrerad och fixerad via CSS)
+    with col_exit[1]:
+        selected_display_name = st.selectbox(
+            "Song Select",
+            options=options,
+            index=current_index,
+            label_visibility="collapsed",
+            key="main_selector"
+        )
+        
+        # Uppdatera state om användaren väljer en låt
+        if selected_display_name != "VÄLJ LÅT...":
+            new_file = song_map[selected_display_name]
+            if st.session_state.active_song_file != new_file:
+                st.session_state.active_song_file = new_file
+                st.rerun()
+        else:
+            if st.session_state.active_song_file is not None:
+                st.session_state.active_song_file = None
+                st.rerun()
+
+# --- 6. RENDER CONTENT ---
+if st.session_state.active_song_file:
+    file_path = LIB_DIR / f"{st.session_state.active_song_file}.md"
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             lyrics = f.read()
-        st.markdown(f'<div class="song-text-container">{lyrics}</div>', unsafe_allow_html=True)
+        
+        # 60 tomma rader
+        full_lyrics = lyrics + ("\n" * 60)
+        st.markdown(f'<div class="song-text-container">{full_lyrics}</div>', unsafe_allow_html=True)
 else:
-    st.write("") # Tom startsida
+    st.write("") # Ren startsida
 
-# --- 6. AUTO-SCROLL ---
+# --- 7. AUTO-SCROLL ---
 st.markdown("""
     <script>
     var mainContainer = window.parent.document.querySelector('.main');

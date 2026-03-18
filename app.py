@@ -3,7 +3,7 @@ import os
 import base64
 from pathlib import Path
 
-# --- 1. CONFIG ---
+# --- 1. CONFIG & SETUP ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -15,31 +15,40 @@ LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
 
-def get_library():
-    return sorted([f.stem for f in LIB_DIR.glob("*.md")])
+def format_song_name(name):
+    """Omvandlar PIPPI_LÅNGSTRUMP till Pippi Långstrump"""
+    # Ersätt understreck med mellanslag och fixa stor/liten bokstav per ord
+    return name.replace('_', ' ').strip().title()
+
+def get_library_map():
+    """Skapar en mappning mellan snygga namn och filnamn"""
+    files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
+    return {format_song_name(f): f for f in files}
 
 def get_base64_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    if bin_file.exists():
+        with open(bin_file, 'rb') as f:
+            return base64.b64encode(f.read()).decode()
+    return None
 
-# --- 2. STAGE-SAFE UI (LIGHT MODE) ---
+# --- 2. THE STAGE-SAFE UI (LIGHT & ROUNDED) ---
 st.markdown(f"""
     <style>
+    /* Grundtema */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
     
+    /* Göm menyer */
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
     .main .block-container {{
-        padding-top: 150px !important; /* Mer plats för XXL-loggan */
+        padding-top: 170px !important;
         padding-left: 20px !important;
         padding-right: 20px !important;
-        max-width: 100% !important;
     }}
 
     /* FIXED HEADER */
@@ -48,71 +57,55 @@ st.markdown(f"""
         top: 0;
         left: 0;
         width: 100%;
-        height: 130px; /* Höjd för XXL-logo */
+        height: 150px; 
         background-color: #ffffff;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 15px;
+        padding: 0 20px;
         z-index: 999999;
     }}
 
-    /* LOGOTYP (YTTERLIGARE 20% STÖRRE) */
-    .logo-link {{
+    /* LOGOTYP (XXL + 20%) */
+    .logo-container {{
         transform: rotate(-8deg);
-        text-decoration: none;
-        display: block;
         flex-shrink: 0;
     }}
     
     .logo-img {{
-        height: 135px; /* Uppskalad ytterligare */
+        height: 160px; /* Ännu större */
         width: auto;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 52px; /* Gigantisk fallback-text */
+        font-size: 60px;
         color: #000000;
         background: #ffffff;
-        padding: 10px 30px;
-        border: 5px solid #000000;
-        border-radius: 15px;
-    }}
-
-    /* NATIVE SELECT (FÖR ENKEL NAVIGATION) */
-    .nav-center {{
-        flex-grow: 1;
-        margin: 0 15px;
-        max-width: 45%;
-    }}
-
-    .native-select {{
-        width: 100%;
-        height: 60px;
-        background-color: #ffffff;
-        color: #000000;
-        border: 2px solid #dddddd;
+        padding: 15px 35px;
+        border: 6px solid #000000;
         border-radius: 20px;
-        padding: 0 15px;
-        font-size: 20px;
-        appearance: none;
-        -webkit-appearance: none;
-        outline: none;
     }}
 
+    /* STÄNG AV TANGENTBORD PÅ SELECTBOX */
+    /* Vi tvingar Streamlits selectbox att bara reagera på klick, inte text-input */
+    div[data-baseweb="select"] input {{
+        caret-color: transparent !important;
+        pointer-events: none !important;
+    }}
+    
     /* EXIT-KNAPP */
-    .exit-btn {{
-        background-color: #eeeeee;
+    .exit-link {{
+        background-color: #f5f5f5;
         color: #000000 !important;
-        padding: 15px 25px;
-        border-radius: 20px;
+        padding: 18px 30px;
+        border-radius: 25px;
         text-decoration: none;
         font-weight: 800;
-        font-size: 14px;
+        font-size: 16px;
         text-transform: uppercase;
-        border: 1px solid #cccccc;
+        border: 1px solid #dddddd;
         flex-shrink: 0;
     }}
 
@@ -122,69 +115,52 @@ st.markdown(f"""
         white-space: pre !important;
         overflow-x: auto !important;
         color: #000000 !important;
-        font-size: 22px;
+        font-size: 24px;
         line-height: 1.6;
         padding-bottom: 85vh;
     }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. DATA & PARAMS ---
-song_list = get_library()
-# Hämta parameter manuellt för maximal säkerhet
-query_params = st.query_params
-active_song = query_params.get("song", None)
+# --- 3. DATA & LOGIK ---
+song_map = get_library_map()
+snygga_namn = ["VÄLJ LÅT..."] + list(song_map.keys())
 
 # --- 4. RENDER HEADER ---
-logo_html = '<div class="logo-fallback">PLAYIT</div>'
-if LOGO_PATH.exists():
-    try:
-        base64_logo = get_base64_bin_file(str(LOGO_PATH))
-        logo_html = f'<img src="data:image/png;base64,{base64_logo}" class="logo-img">'
-    except:
-        pass
+# Logga
+logo_b64 = get_base64_bin_file(LOGO_PATH)
+logo_html = f'<div class="logo-fallback">PLAYIT</div>'
+if logo_b64:
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">'
 
-# Bygg options
-options_html = f'<option value="">VÄLJ LÅT...</option>'
-for song in song_list:
-    sel = 'selected' if active_song == song else ''
-    options_html += f'<option value="{song}" {sel}>{song.upper()}</option>'
+# Vi använder st.columns inuti en fixerad div-struktur för att få Streamlit-widgets att sitta rätt
+header_placeholder = st.empty()
 
-# JAVASCRIPT-NAVIGATION (Tvingar omladdning vid klick)
-st.markdown(f"""
-    <div class="stage-header">
-        <a href="/" target="_self" class="logo-link">
-            {logo_html}
-        </a>
-        <div class="nav-center">
-            <select class="native-select" id="songSelect">
-                {options_html}
-            </select>
-        </div>
-        <a href="/" target="_self" class="exit-btn">EXIT</a>
-    </div>
+with header_placeholder:
+    # Vi skapar själva den visuella headern
+    st.markdown(f'<div class="stage-header"><div class="logo-container">{logo_html}</div><div id="widget-area" style="width:45%;"></div><a href="/" target="_self" class="exit-link">EXIT</a></div>', unsafe_allow_html=True)
 
-    <script>
-    var select = window.parent.document.getElementById("songSelect");
-    if (!select) {{
-        // Om vi kör i iframe (standard Streamlit) måste vi leta i parent
-        select = document.getElementById("songSelect");
-    }}
-    
-    select.addEventListener('change', function() {{
-        var val = encodeURIComponent(this.value);
-        if (val) {{
-            window.parent.location.assign(window.parent.location.origin + window.parent.location.pathname + "?song=" + val);
-        }} else {{
-            window.parent.location.assign(window.parent.location.origin + window.parent.location.pathname);
-        }}
-    }});
-    </script>
-""", unsafe_allow_html=True)
+# Placera Streamlits selectbox i mitten (vi döljer labeln)
+# Denna widget hamnar nu "ovanpå" headern tack vare CSS-tricks eller positionering
+with st.container():
+    # Vi använder en kolumn-layout för att centrera widgeten i det tomma hålet i headern
+    _, center_col, _ = st.columns([1, 2, 1])
+    with center_col:
+        # Flytta upp widgeten i headern med CSS
+        st.markdown('<div style="position:fixed; top:45px; width:45%; z-index:1000000;">', unsafe_allow_html=True)
+        val k = st.selectbox(
+            "Select Song",
+            options=snygga_namn,
+            label_visibility="collapsed",
+            key="song_selector"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 5. RENDER CONTENT ---
-if active_song and active_song in song_list:
-    file_path = LIB_DIR / f"{active_song}.md"
+if k != "VÄLJ LÅT...":
+    actual_filename = song_map[k]
+    file_path = LIB_DIR / f"{actual_filename}.md"
+    
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -193,7 +169,7 @@ else:
     # Startsida helt tom
     st.write("")
 
-# --- 6. CLEANUP SCRIPT ---
+# --- 6. AUTO-SCROLL ---
 st.markdown("""
     <script>
     var mainContainer = window.parent.document.querySelector('.main');

@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# State för att hålla koll på vald låt
 if "active_song" not in st.session_state:
     st.session_state.active_song = "VÄLJ LÅT..."
 
@@ -32,10 +31,9 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: ABSOLUTE POSITIONING & NO-KEYBOARD ---
+# --- 2. CSS & ANTI-KEYBOARD JAVASCRIPT ---
 st.markdown(f"""
     <style>
-    /* Grundinställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -45,77 +43,66 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* FIXED HEADER CONTAINER */
+    /* FIXED HEADER */
     .header-anchor {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 150px;
+        height: 160px;
         background: #ffffff;
         z-index: 999990;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 2px solid #f0f0f0;
     }}
 
-    /* LOGO (MASSIV + 20% till) */
+    /* LOGO (EXTRA STOR) */
     .stage-logo {{
         position: fixed;
-        left: 10px;
+        left: 15px;
         top: 5px;
-        height: 140px; /* Rejäl storlek */
+        height: 150px; 
         width: auto;
-        transform: rotate(-7deg);
+        transform: rotate(-6deg);
         z-index: 1000005 !important;
     }}
-    
-    .logo-fallback {{
-        position: fixed;
-        left: 10px;
-        top: 20px;
-        font-weight: 900;
-        font-size: 40px;
-        border: 5px solid #000;
-        padding: 10px;
-        z-index: 1000005;
-        background: white;
-    }}
 
-    /* RULLIST (35% & TOP) */
+    /* RULLIST (30% BREDD + CENTER) */
     div[data-testid="stSelectbox"] {{
         position: fixed !important;
-        top: 10px !important;
+        top: 15px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: 35% !important;
+        width: 30% !important;
         z-index: 1000010 !important;
     }}
 
-    /* TANGENTBORDS-SPÄRR */
+    /* TANGENTBORDS-STOPP (CSS-DEL) */
     div[data-baseweb="select"] input {{
-        pointer-events: none !important;
         caret-color: transparent !important;
+        pointer-events: none !important;
+        touch-action: none !important;
     }}
 
-    /* EXIT-KNAPP (HTML-LÄNK ISTÄLLET FÖR ST-BUTTON) */
-    .exit-anchor {{
+    /* START-KNAPP (ERSÄTTER EXIT) */
+    .start-anchor {{
         position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #f0f0f0;
-        color: #000 !important;
-        padding: 10px 15px;
-        border-radius: 12px;
-        font-weight: 800;
-        font-size: 14px;
+        top: 25px;
+        right: 25px;
+        background: #000000;
+        color: #ffffff !important;
+        padding: 12px 25px;
+        border-radius: 50px;
+        font-weight: 900;
+        font-size: 16px;
         text-decoration: none !important;
-        border: 1px solid #ddd;
         z-index: 1000010 !important;
         text-transform: uppercase;
+        letter-spacing: 1px;
     }}
 
     /* SONG DISPLAY */
     .song-area {{
-        margin-top: 160px;
+        margin-top: 180px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
@@ -124,27 +111,40 @@ st.markdown(f"""
         padding-bottom: 80vh;
     }}
     </style>
+
+    <script>
+    // DETTA STOPPAR TANGENTBORDET GENOM ATT TA BORT FOKUS OMEDELBART
+    setInterval(function() {{
+        var inputs = window.parent.document.querySelectorAll('input');
+        inputs.forEach(function(input) {{
+            input.setAttribute('readonly', 'true');
+            if (window.parent.document.activeElement === input) {{
+                input.blur();
+            }}
+        }});
+    }}, 100);
+    </script>
 """, unsafe_allow_html=True)
 
 # --- 3. RENDERING ---
 
-# Rita den fasta bakgrunden och loggan
+# Bakgrund & Logo
 logo_b64 = get_logo_b64()
 st.markdown('<div class="header-anchor"></div>', unsafe_allow_html=True)
 
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="logo-fallback">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:20px; top:30px; font-weight:900; font-size:40px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
 
-# Rita EXIT-knappen som en ren HTML-länk (tvingar omladdning till startsidan)
-st.markdown('<a href="/" target="_self" class="exit-anchor">EXIT</a>', unsafe_allow_html=True)
+# START-knapp (Länk till startsidan)
+st.markdown('<a href="/" target="_self" class="start-anchor">START</a>', unsafe_allow_html=True)
 
-# Ladda låtarna
+# Låtlista
 song_map = get_songs()
 options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
-# Rullistan
+# Selectbox
 selected = st.selectbox(
     "Välj låt",
     options=options,
@@ -152,7 +152,6 @@ selected = st.selectbox(
     label_visibility="collapsed"
 )
 
-# Vid val av låt
 if selected != st.session_state.active_song:
     st.session_state.active_song = selected
     st.rerun()
@@ -165,9 +164,10 @@ if st.session_state.active_song != "VÄLJ LÅT...":
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
+        # Lägg till 60 tomma rader enligt spec
         st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 else:
     st.empty()
 
-# Scroll till toppen
+# Scroll-fix
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

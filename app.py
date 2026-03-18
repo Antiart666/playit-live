@@ -13,13 +13,14 @@ st.set_page_config(
 # --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    name = filename.replace(".md", "")
-    name = name.replace("_", " ")
+    """Gör om filnamn till snygg läsbar text."""
+    name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 def transpose_chords(text, steps):
+    """Hanterar transponering av ackord i texten."""
     if steps == 0: return text
     def replace_chord(match):
         chord = match.group(0)
@@ -33,7 +34,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Inter-font, Rundade hörn, Kontrollpanel) ---
+# --- DESIGN (Inter-font, Rundade hörn, Scen-layout) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -45,28 +46,31 @@ st.markdown("""
     }
 
     .block-container {
-        padding-top: 1rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-top: 0.5rem !important;
         max-width: 98% !important;
     }
 
-    /* LOGGA */
+    /* Fast Header för logga */
+    .header-area {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        margin-bottom: 20px;
+    }
+
     .logo-container {
-        position: absolute;
-        top: -10px;
-        left: 20px;
-        z-index: 1000;
         transform: rotate(-8deg);
         background: #000000;
         padding: 8px 18px;
         border-radius: 12px;
+        display: inline-block;
     }
-    .logo-text { color: #ffffff; font-weight: 900; font-size: 20px; text-transform: uppercase; }
+    .logo-text { color: #ffffff; font-weight: 900; font-size: 18px; text-transform: uppercase; }
 
-    /* LÄSRUTAN */
+    /* Låtrutan - Maxad och rundad */
     .song-container {
-        height: 78vh; 
+        height: 80vh; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff;
@@ -74,155 +78,146 @@ st.markdown("""
         padding: 20px;
         border: 3px solid #000000;
         border-radius: 25px; 
-        margin-top: 5px;
         font-family: 'Courier New', Courier, monospace;
-        font-size: 17px; /* En aning mindre för att rymma hela rader */
+        font-size: 17px; 
         line-height: 1.5;
         white-space: pre-wrap;
     }
 
-    /* KNAPPAR */
+    /* Knappar - Runda och tydliga */
     .stButton>button {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
         border-radius: 15px !important;
         font-weight: 700 !important;
+        height: 3.5em !important;
         text-transform: uppercase;
     }
-
-    /* KONTROLLPANEL (Den 'fiffiga' rutan) */
-    .control-panel {
-        background-color: #f8f8f8;
-        border: 2px solid #000000;
-        border-radius: 20px;
-        padding: 15px;
-        margin-bottom: 10px;
-    }
-
-    input { border: 2px solid #000000 !important; border-radius: 15px !important; }
     
-    /* Kategorier rubrik */
-    .cat-header {
-        font-size: 14px;
+    /* Sökfältet */
+    input { border: 2px solid #000000 !important; border-radius: 15px !important; }
+
+    /* Kategorirubriker */
+    .category-label {
+        font-size: 13px;
         font-weight: 900;
         text-transform: uppercase;
-        margin-top: 20px;
-        border-bottom: 2px solid #000000;
-        display: inline-block;
+        color: #666;
+        margin-top: 25px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+        border-left: 4px solid #000;
+        padding-left: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Initiera State
+# 2. Status & Navigation
 if "view" not in st.session_state: st.session_state.view = "list"
-if "current_song" not in st.session_state: st.session_state.current_song = ""
-if "current_path" not in st.session_state: st.session_state.current_path = ""
+if "current_song_path" not in st.session_state: st.session_state.current_song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
-if "show_controls" not in st.session_state: st.session_state.show_controls = False
+if "show_tools" not in st.session_state: st.session_state.show_tools = False
 
+# Render Header
 st.markdown('<div class="logo-container"><div class="logo-text">PLAYIT</div></div>', unsafe_allow_html=True)
-st.write("") 
 
 songs_dir = "library"
 
-# 3. App-logik
+# 3. Huvudlogik
 if not os.path.exists(songs_dir):
-    st.error("Skapa mappen 'library' på GitHub först!")
+    st.error("Mappen 'library' hittades inte på GitHub.")
 else:
     if st.session_state.view == "list":
-        # --- SIDA 1: ARKIVET ---
+        # --- ARKIV-VY ---
         st.title("Arkiv")
-        search = st.text_input("Sök i din låtbank...", "")
+        search = st.text_input("SÖK LÅT...", placeholder="Skriv titel eller artist")
         
-        # Hämta mappar och filer
+        # Samla alla låtar och kategorier genom att vandra i mapparna
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
-            if category == "library": category = "Övrigt"
+            if category == "library": category = "Mina Låtar"
             
-            # Filtrera filer
+            # Filtrera .md-filer
             valid_files = sorted([f for f in files if f.endswith(".md")])
             filtered_files = [f for f in valid_files if search.lower() in f.lower() or search.lower() in clean_title(f).lower()]
             
             if filtered_files:
-                st.markdown(f'<div class="cat-header">{category}</div>', unsafe_allow_html=True)
-                # Visa i 2 kolumner på mobil för att spara plats
+                st.markdown(f'<div class="category-label">{category}</div>', unsafe_allow_html=True)
+                # Visa i två kolumner för bättre överblick
                 cols = st.columns(2)
-                for idx, s in enumerate(filtered_files):
-                    with cols[idx % 2]:
-                        if st.button(clean_title(s), key=os.path.join(root, s)):
-                            st.session_state.current_song = s
-                            st.session_state.current_path = os.path.join(root, s)
+                for i, filename in enumerate(filtered_files):
+                    with cols[i % 2]:
+                        if st.button(clean_title(filename), key=os.path.join(root, filename)):
+                            st.session_state.current_song_path = os.path.join(root, filename)
                             st.session_state.transpose = 0
                             st.session_state.scroll = 0
-                            st.session_state.show_controls = False
+                            st.session_state.show_tools = False
                             st.session_state.view = "song"
                             st.rerun()
 
     else:
-        # --- SIDA 2: SCENLÄGET ---
-        # Översta raden: Tillbaka och Kontroll-toggle
+        # --- SCEN-VY (Låten är öppen) ---
+        
+        # Navigeringsrad ovanför låten
         nav_col1, nav_col2 = st.columns([1, 1])
         with nav_col1:
-            if st.button("← ARKIV"):
+            if st.button("← TILL ARKIVET"):
                 st.session_state.view = "list"
                 st.rerun()
         with nav_col2:
-            label = "✖ STÄNG VERKTYG" if st.session_state.show_controls else "⚙ VERKTYG"
-            if st.button(label):
-                st.session_state.show_controls = not st.session_state.show_controls
+            tool_label = "✖ STÄNG VERKTYG" if st.session_state.show_tools else "⚙ INSTÄLLNINGAR"
+            if st.button(tool_label):
+                st.session_state.show_tools = not st.session_state.show_tools
                 st.rerun()
 
-        # Den 'fiffiga' kontrollpanelen som dyker upp/försvinner
-        if st.session_state.show_controls:
-            with st.container():
-                st.markdown('<div class="control-panel">', unsafe_allow_html=True)
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.write("**TONART**")
-                    if st.button("-"): st.session_state.transpose -= 1
-                    if st.button("+"): st.session_state.transpose += 1
-                with c2:
-                    st.write("**SCROLL**")
-                    if st.button("Saktare"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
-                    if st.button("Snabbare"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
-                with c3:
-                    st.write("**INFO**")
-                    st.write(f"Steg: {st.session_state.transpose}")
-                    st.write(f"Fart: {st.session_state.scroll}")
-                    if st.button("STOPP"): 
-                        st.session_state.scroll = 0
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+        # Verktygspanel (Transponering och Scroll)
+        if st.session_state.show_tools:
+            st.info("Här kan du justera tonart och scrollfart för låten.")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.write("**TONART**")
+                if st.button("- Sänk"): st.session_state.transpose -= 1
+                if st.button("+ Höj"): st.session_state.transpose += 1
+            with c2:
+                st.write("**SCROLL**")
+                if st.button("Saktare"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
+                if st.button("Snabbare"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
+            with c3:
+                st.write("**STATUS**")
+                st.write(f"Steg: {st.session_state.transpose}")
+                st.write(f"Fart: {st.session_state.scroll}")
+                if st.button("STOPP"): 
+                    st.session_state.scroll = 0
+                    st.rerun()
+            st.markdown("---")
 
-        # Visa titel kort
-        st.subheader(clean_title(st.session_state.current_song))
+        # Visa titeln tydligt
+        st.subheader(clean_title(os.path.basename(st.session_state.current_song_path)))
 
-        # Läs och bearbeta låten
-        with open(st.session_state.current_path, "r", encoding="utf-8") as f:
-            text = f.read()
+        # Innehållshantering
+        with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
+            content = f.read()
         
-        text = transpose_chords(text, st.session_state.transpose)
-        display_text = text + ("\n" * 40)
+        content = transpose_chords(content, st.session_state.transpose)
+        # La till extra utrymme i botten
+        display_text = content + ("\n" * 45)
 
-        # Scroll-skript
-        scroll_js = ""
+        # Scroll-funktion
         if st.session_state.scroll > 0:
             delay = (11 - st.session_state.scroll) * 35
-            scroll_js = f"""
-            <script>
-            var box = document.getElementById("song-box");
-            if (window.sInterval) clearInterval(window.sInterval);
-            window.sInterval = setInterval(function() {{
-                if (box) box.scrollTop += 1;
-            }}, {delay});
-            </script>
-            """
+            st.markdown(f"""
+                <script>
+                var box = window.parent.document.getElementById("song-box");
+                if (window.sInterval) clearInterval(window.sInterval);
+                window.sInterval = setInterval(function() {{
+                    if (box) box.scrollTop += 1;
+                }}, {delay});
+                </script>
+            """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-            <div id="song-box" class="song-container">{display_text}</div>
-            {scroll_js}
-        """, unsafe_allow_html=True)
+        st.markdown(f'<div id="song-box" class="song-container">{display_text}</div>', unsafe_allow_html=True)
 
-# Vill du ha ett djupgående expertsvar eller räcker det med en kortare sammanfattning?
+st.sidebar.markdown("---")
+st.sidebar.write("Rock on! 🤘")

@@ -11,13 +11,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNKTIONER ---
+# --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
+    """Laddar loggan och gör om till kod. Kraschar inte om filen saknas."""
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
@@ -41,14 +42,14 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Den heliga graalen för layouten) ---
+# --- CSS (Den här gången sitter den!) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* DÖLJ ALLT STANDARD-SKRÄP */
+    /* DÖLJ STANDARD-STRECK OCH MENYER */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -60,54 +61,57 @@ st.markdown(f"""
         max-width: 98% !important;
     }}
 
-    /* LOGGAN SOM EN RIKTIG KNAPP */
-    /* Vi siktar på knappen med key='home_logo' */
-    div[data-testid="stButton"] > button[key="home_logo"] {{
-        position: fixed !important;
-        top: 15px !important;
-        left: 20px !important;
-        width: 110px !important;
-        height: 70px !important;
-        z-index: 999999 !important;
-        
-        background-image: url("data:image/png;base64,{logo_b64}") !important;
+    /* POSITIONERING AV LOGGA-BEHÅLLAREN */
+    .logo-anchor {{
+        position: fixed;
+        top: 15px;
+        left: 20px;
+        z-index: 1000000;
+    }}
+
+    /* LOGGAN SOM EN RIKTIG KNAPP (Klädd i din bild) */
+    .logo-anchor button {{
+        width: 110px !important; /* Storleken du ville ha */
+        height: 65px !important;
+        background-image: url("data:image/png;base64,{logo_b64 if logo_b64 else ''}") !important;
         background-size: contain !important;
         background-repeat: no-repeat !important;
         background-position: center !important;
         background-color: transparent !important;
-        
         border: none !important;
         color: transparent !important;
-        font-size: 0px !important;
         box-shadow: none !important;
         transform: rotate(-8deg) !important;
         cursor: pointer !important;
-        transition: transform 0.1s !important;
+        padding: 0 !important;
     }}
     
-    div[data-testid="stButton"] > button[key="home_logo"]:active {{
+    .logo-anchor button:active {{
         transform: rotate(-8deg) scale(0.9) !important;
     }}
 
-    /* MELLANRUM FÖR ATT UNDVIKA KAOS */
-    .top-padding {{ height: 110px; }}
+    /* SKYDD MOT BOKSTAVSKAOS */
+    .top-spacer {{
+        height: 110px; /* Skapar en mur så texten inte kan hoppa upp */
+        width: 100%;
+    }}
 
     /* LÄSRUTAN (MAXAD) */
-    .song-stage {{
-        height: 90vh; 
+    .song-box {{
+        height: 88vh; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
         border: 4px solid #000000;
         border-radius: 35px; 
-        padding: 20px;
+        padding: 25px;
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 18px; 
         line-height: 1.5;
         white-space: pre-wrap;
     }}
 
-    /* ARKIV-KNAPPAR */
+    /* KNAPPAR I LISTAN */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         border: 3px solid #000000 !important;
@@ -116,41 +120,37 @@ st.markdown(f"""
         height: 3.5em !important;
         width: 100% !important;
     }}
-
-    /* INSTÄLLNINGAR */
-    .settings-area {{
-        margin-top: 50px;
-        padding: 25px;
-        background-color: #f9f9f9;
-        border: 2px dashed #000;
-        border-radius: 30px;
-    }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. STATE & NAVIGATION ---
+# 2. State & Navigation
 if "page" not in st.session_state: st.session_state.page = "list"
 if "song" not in st.session_state: st.session_state.song = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# LOGGAN (Renderas först så CSS hittar den)
-# Vi använder ett osynligt tecken som label
+# --- LOGGAN (HÖGST UPP I KODEN) ---
+st.markdown('<div class="logo-anchor">', unsafe_allow_html=True)
 if st.button(" ", key="home_logo"):
     st.session_state.page = "list"
     st.session_state.song = ""
     st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Om loggan saknas på GitHub, visa en liten varning så vi vet
+if not logo_b64:
+    st.warning("⚠️ Hittade inte 'logo.png' på GitHub. Kontrollera filnamnet!")
 
 songs_dir = "library"
 
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' hittades inte på GitHub.")
+    st.error("Mappen 'library' hittades inte.")
 else:
     if st.session_state.page == "list":
         # --- SIDA 1: ARKIVET ---
-        st.markdown('<div class="top-padding"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="top-spacer"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
@@ -167,9 +167,9 @@ else:
                             st.session_state.page = "song"
                             st.rerun()
 
-        # Inställningar längst ner
-        st.markdown('<div class="settings-area">', unsafe_allow_html=True)
-        st.subheader("⚙️ Verktyg")
+        # Inställningar
+        st.markdown('<div style="margin-top:50px; padding:20px; background:#f9f9f9; border:2px dashed #000; border-radius:25px;">', unsafe_allow_html=True)
+        st.subheader("⚙️ Inställningar")
         c1, c2 = st.columns(2)
         with c1:
             st.write("Tonart")
@@ -185,8 +185,8 @@ else:
 
     else:
         # --- SIDA 2: LÅTEN ---
-        # Lägger till en liten marginal högst upp så rutan inte krockar med loggan
-        st.markdown('<div style="height:80px;"></div>', unsafe_allow_html=True)
+        # Lägger till ett litet mellanrum så rutan inte krockar med loggan
+        st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song):
             with open(st.session_state.song, "r", encoding="utf-8") as f:
@@ -195,20 +195,17 @@ else:
             text = transpose_chords(text, st.session_state.transpose)
             full_display = text + ("\n" * 50)
 
-            # SÄKER AUTO-SCROLL (Targetar bara lokalt ID)
+            # Auto-scroll
             if st.session_state.scroll > 0:
-                speed = (11 - st.session_state.scroll) * 40
+                speed = (11 - st.session_state.scroll) * 45
                 st.markdown(f"""
                     <script>
-                    var container = document.getElementById("song-view");
+                    var box = document.getElementById("song-view");
                     if (window.scroller) clearInterval(window.scroller);
                     window.scroller = setInterval(function() {{
-                        if (container) container.scrollTop += 1;
+                        if (box) box.scrollTop += 1;
                     }}, {speed});
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-stage">{full_display}</div>', unsafe_allow_html=True)
-        else:
-            st.session_state.page = "list"
-            st.rerun()
+            st.markdown(f'<div id="song-view" class="song-box">{full_display}</div>', unsafe_allow_html=True)

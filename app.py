@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNKTIONER ---
+# --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
     """Snyggar till titlar för scenen."""
@@ -43,8 +43,9 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Finslipad Sniper-metod och Tab-optimering) ---
+# --- CSS (Total kontroll på designen) ---
 logo_b64 = get_image_base64("logo.png")
+logo_html = f'data:image/png;base64,{logo_b64}' if logo_b64 else ""
 
 st.markdown(f"""
     <style>
@@ -54,7 +55,7 @@ st.markdown(f"""
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GLOBAL TEXT */
+    /* GLOBAL TEXTSTIL */
     * {{ color: #000000 !important; font-family: 'Inter', sans-serif !important; }}
 
     .block-container {{
@@ -64,58 +65,53 @@ st.markdown(f"""
         padding-right: 0.5rem !important;
     }}
 
-    /* LOGGAN SOM ÄR EN KNAPP (INGET ANNAT ELEMENT FINNS) */
-    div[data-testid="stButton"] > button[key="logo_home"] {{
+    /* 1. DEN VISUELLA LOGGAN (Ligger alltid fast i hörnet) */
+    .visual-logo {{
+        position: fixed !important;
+        top: 20px !important;
+        left: 20px !important;
+        width: 110px !important;
+        z-index: 999998 !important;
+        transform: rotate(-8deg);
+        pointer-events: none; /* Låter klicket gå igenom till knappen under */
+    }}
+
+    /* 2. DEN OSYNLIGA HEMKNAPPEN (Exakt ovanpå bilden) */
+    div[data-testid="stButton"]:nth-of-type(1) button {{
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
-        width: 105px !important;
-        height: 65px !important;
+        width: 120px !important;
+        height: 80px !important;
         z-index: 999999 !important;
-        
-        /* Här bäddar vi in bilden direkt i knappen för perfekt sync */
-        background-image: url("data:image/png;base64,{logo_b64 if logo_b64 else ''}") !important;
-        background-size: contain !important;
-        background-repeat: no-repeat !important;
-        background-position: center !important;
-        background-color: transparent !important;
-        
-        /* Ta bort all knapp-styling så bara bilden syns */
+        opacity: 0 !important;
+        background: transparent !important;
         border: none !important;
-        color: transparent !important;
-        font-size: 0px !important;
-        box-shadow: none !important;
-        transform: rotate(-8deg) !important;
         cursor: pointer !important;
-        transition: transform 0.1s ease-in-out !important;
-    }}
-    
-    div[data-testid="stButton"] > button[key="logo_home"]:active {{
-        transform: rotate(-8deg) scale(0.9) !important;
     }}
 
-    /* STOPPA BOKSTAVSKAOSET */
+    /* STOPPA KAOS HÖGST UPP */
     .top-wall {{
-        height: 100px;
+        height: 110px;
         display: block;
     }}
 
-    /* LÄSRUTAN (GRÄNSLÖS & TABS-OPTIMERAD) */
-    .song-stage-pro {{
+    /* LÄSRUTAN (GRÄNSLÖS & PERFEKTA TABS) */
+    .song-box-stage {{
         height: 92vh !important; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
         color: #000000 !important;
         padding: 5px !important;
-        border: none !important;
+        border: none !important; /* Ingen ram längre */
         
-        /* Monospace för perfekta tabs */
+        /* Monospace-fix för tabs */
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 15px !important; /* Minskat från 18px för att undvika "taggighet" */
-        line-height: 1.2 !important; /* Tightare rader för bättre tabs-överblick */
-        white-space: pre !important; /* Förhindrar radbrytning som förstör tabs */
-        overflow-x: auto !important; /* Tillåter scroll i sidled om en tab är extra lång */
+        font-size: 14px !important; /* Minskat för att rymma hela tab-rader */
+        line-height: 1.2 !important;
+        white-space: pre !important; /* Förhindrar brytning som skapar "taggighet" */
+        overflow-x: auto !important; /* Tillåter scroll i sidled om tabbat är bredare än skärmen */
     }}
 
     /* ARKIV-KNAPPAR */
@@ -139,16 +135,23 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. LOGIK & STATE ---
+# --- 2. LOGIK & NAVIGATION ---
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# LOGGAN SOM HEMKNAPP (Enda elementet i hörnet)
-if st.button(" ", key="logo_home"):
+# LOGGAN (Bilden som alltid visas)
+if logo_b64:
+    st.markdown(f'<img src="{logo_html}" class="visual-logo">', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="visual-logo" style="background:black;color:white;padding:10px;border-radius:10px;">HEM</div>', unsafe_allow_html=True)
+
+# OSYNLIG KNAPP (Detta är den första knappen i koden, triggar "Hem")
+if st.button(" ", key="home_trigger"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
+    st.session_state.scroll = 0
     st.rerun()
 
 songs_dir = "library"
@@ -156,7 +159,7 @@ songs_dir = "library"
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas.")
+    st.error("Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
         # ARKIV
@@ -204,20 +207,20 @@ else:
             content = transpose_chords(content, st.session_state.transpose)
             full_text = content + ("\n" * 60)
 
-            # Auto-scroll
+            # Auto-scroll (Lokaliserad för mobilstabilitet)
             if st.session_state.scroll > 0:
-                speed = (11 - st.session_state.scroll) * 45
+                delay = (11 - st.session_state.scroll) * 45
                 st.markdown(f"""
                     <script>
                     var box = document.getElementById("song-view");
                     if (window.playitScroll) clearInterval(window.playitScroll);
                     window.playitScroll = setInterval(function() {{
                         if (box) box.scrollTop += 1;
-                    }}, {speed});
+                    }}, {delay});
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-stage-pro">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-box-stage">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

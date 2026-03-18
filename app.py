@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import base64
 from pathlib import Path
+from urllib.parse import quote
 
 # --- 1. CORE CONFIGURATION ---
 st.set_page_config(
@@ -23,95 +24,95 @@ def get_base64_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-# --- 2. THE STAGE-SAFE UI (LIGHT MODE ONLY) ---
+# --- 2. THE STAGE-SAFE UI (LJUS DESIGN + MAXI-LOGO) ---
 st.markdown(f"""
     <style>
-    /* Tvinga ljus bakgrund i hela appen */
+    /* Grundinställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
     
-    /* Göm Streamlits standard-element */
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
     .main .block-container {{
-        padding-top: 100px !important;
+        padding-top: 130px !important; /* Ökad för att ge plats åt större header */
         padding-left: 20px !important;
         padding-right: 20px !important;
         max-width: 100% !important;
     }}
 
-    /* FIXED HEADER (LJUS) */
+    /* FIXED HEADER (HÖGRE FÖR ATT RYMMA LOGGAN) */
     .stage-header {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 85px;
+        height: 110px; /* Ökad höjd */
         background-color: #ffffff;
-        border-bottom: 1px solid #eeeeee;
+        border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 20px;
+        padding: 0 15px;
         z-index: 999999;
     }}
 
-    /* LOGOTYP (Stor & Rundad) */
+    /* LOGOTYP (70% STÖRRE) */
     .logo-link {{
         transform: rotate(-8deg);
         text-decoration: none;
         display: block;
         flex-shrink: 0;
+        margin-left: 10px;
     }}
     
     .logo-img {{
-        height: 65px; 
+        height: 110px; /* Tidigare ~65px, nu +70% ≈ 110px */
         width: auto;
-        border-radius: 12px;
+        border-radius: 15px;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 26px;
+        font-size: 42px; /* Skalat upp texten också */
         color: #000000;
         background: #ffffff;
-        padding: 8px 15px;
-        border: 3px solid #000000;
-        border-radius: 12px;
+        padding: 10px 25px;
+        border: 4px solid #000000;
+        border-radius: 15px;
     }}
 
     /* NATIVE SELECT (LJUS & RUNDAD) */
     .nav-center {{
         flex-grow: 1;
         margin: 0 20px;
-        max-width: 55%;
+        max-width: 50%;
     }}
 
     .native-select {{
         width: 100%;
-        height: 50px;
+        height: 55px;
         background-color: #ffffff;
         color: #000000;
         border: 2px solid #eeeeee;
-        border-radius: 15px; /* Rundade hörn */
+        border-radius: 18px;
         padding: 0 15px;
-        font-size: 16px;
+        font-size: 18px;
         appearance: none;
         -webkit-appearance: none;
         cursor: pointer;
         outline: none;
     }}
 
-    /* EXIT-KNAPP (LJUSGRÅ/SVART & RUNDAD) */
+    /* EXIT-KNAPP */
     .exit-btn {{
-        background-color: #f5f5f5;
+        background-color: #f8f8f8;
         color: #000000 !important;
-        padding: 12px 20px;
-        border-radius: 15px; /* Rundade hörn */
+        padding: 14px 22px;
+        border-radius: 18px;
         text-decoration: none;
         font-weight: 700;
         font-size: 14px;
@@ -119,35 +120,25 @@ st.markdown(f"""
         border: 1px solid #eeeeee;
         flex-shrink: 0;
     }}
-    
-    .exit-btn:active {{
-        background-color: #eeeeee;
-    }}
 
-    /* LÅT-BEHÅLLARE (TABS) */
+    /* TAB-CONTENT */
     .tab-content {{
         font-family: 'Roboto Mono', monospace !important;
         white-space: pre !important;
         overflow-x: auto !important;
         color: #000000 !important;
-        font-size: 20px;
+        font-size: 22px; /* Något större för bättre läsbarhet */
         line-height: 1.6;
-        padding-bottom: 70vh;
+        padding-bottom: 85vh;
         -webkit-overflow-scrolling: touch;
-    }}
-
-    .landing-page {{
-        text-align: center;
-        margin-top: 20vh;
-        color: #dddddd;
     }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. LOGIC & NAVIGATION ---
+song_list = get_library()
 query_params = st.query_params
 active_song = query_params.get("song", None)
-song_list = get_library()
 
 # --- 4. RENDER HEADER ---
 logo_html = '<div class="logo-fallback">PLAYIT</div>'
@@ -158,11 +149,10 @@ if LOGO_PATH.exists():
     except:
         pass
 
-# HTML-Select
 options_html = f'<option value="" {"selected" if not active_song else ""}>VÄLJ LÅT...</option>'
 for song in song_list:
-    selected_attr = 'selected' if active_song == song else ''
-    options_html += f'<option value="{song}" {selected_attr}>{song.upper()}</option>'
+    is_selected = "selected" if active_song == song else ""
+    options_html += f'<option value="{song}" {is_selected}>{song.upper()}</option>'
 
 st.markdown(f"""
     <div class="stage-header">
@@ -184,17 +174,12 @@ if active_song and active_song in song_list:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-        
         st.markdown(f'<div class="tab-content">{content}</div>', unsafe_allow_html=True)
     except Exception:
-        st.error("Kunde inte läsa filen.")
+        st.error("Filfel.")
 else:
-    st.markdown("""
-        <div class="landing-page">
-            <h1 style="font-weight:900; color:#f0f0f0; font-size: 3rem;">PLAYIT LIVE</h1>
-            <p style="color:#cccccc;">ANVÄND MENYN OVAN</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # Helt tom startsida
+    st.write("")
 
 # --- 6. AUTO-SCROLL TO TOP ---
 st.markdown("""

@@ -1,6 +1,6 @@
-# --- FULLSTÄNDIG KOD FÖR APP.PY ---
 import streamlit as st
 import os
+import re
 import base64
 
 # 1. Konfiguration
@@ -14,10 +14,12 @@ st.set_page_config(
 # --- FUNKTIONER ---
 
 def clean_title(filename):
+    """Snyggar till filnamn för listvyn."""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
+    """Laddar loggan säkert."""
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
@@ -25,18 +27,18 @@ def get_image_base64(path):
         except: return None
     return None
 
-# --- CSS (Absolut positionering och Tabs-fix) ---
+# --- DESIGN (Tvingar knappen till höger och fixar tabs) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono&display=swap');
 
-    /* DÖLJ STANDARD-SKRÄP */
+    /* DÖLJ STANDARD-ELEMENT */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GLOBAL TEXTSTIL */
+    /* GLOBAL TEXT */
     * {{ color: #000000 !important; font-family: 'Inter', sans-serif !important; }}
 
     .block-container {{
@@ -46,13 +48,12 @@ st.markdown(f"""
         padding-right: 0.5rem !important;
     }}
 
-    /* LOGGAN (Spikad till VÄNSTER) */
+    /* LOGGAN (Spikad till VÄNSTER, 80px bred) */
     .fixed-logo-left {{
         position: fixed !important;
-        top: 20px !important;
-        left: 15px !important;
-        width: 80px !important; /* Mindre som begärt */
-        height: auto !important;
+        top: 25px !important;
+        left: 20px !important;
+        width: 80px !important; 
         z-index: 1000001 !important;
         transform: rotate(-8deg) !important;
         filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
@@ -60,35 +61,32 @@ st.markdown(f"""
     }}
 
     /* KNAPPEN LÅTAR (Spikad till HÖGER) */
-    .fixed-nav-right {{
+    div[data-testid="stButton"] > button[key="nav_to_list"] {{
         position: fixed !important;
         top: 20px !important;
-        right: 15px !important;
-        z-index: 1000002 !important;
-    }}
-
-    .fixed-nav-right button {{
+        right: 20px !important; /* TVINGAR DEN TILL HÖGER */
         width: 120px !important;
-        height: 50px !important;
+        height: 55px !important;
+        z-index: 1000002 !important;
         background-color: #ffffff !important;
         border: 3px solid #000000 !important;
         border-radius: 12px !important;
         font-weight: 900 !important;
-        font-size: 15px !important;
+        font-size: 16px !important;
         color: #000000 !important;
         text-transform: uppercase !important;
         box-shadow: 4px 4px 10px rgba(0,0,0,0.15) !important;
         cursor: pointer !important;
     }}
 
-    /* MELLANRUM SÅ ATT TEXTEN INTE HAMNAR BAKOM KNAPPARNA */
+    /* MELLANRUM SÅ ATT TEXTEN INTE HAMNAR BAKOM HEADERN */
     .header-clearance {{
-        height: 100px;
+        height: 110px;
         display: block;
     }}
 
-    /* LÄSRUTAN (TABS-SÄKRAD OCH GRÄNSLÖS) */
-    .song-reader-final {{
+    /* LÄSRUTAN (GRÄNSLÖS & TABS-SÄKER) */
+    .song-stage-final {{
         height: 92vh !important; 
         width: 100%;
         overflow-y: auto;
@@ -97,11 +95,11 @@ st.markdown(f"""
         border: none !important;
         
         /* Monospace fixar så tabs ligger i linje */
-        font-family: 'Courier New', Courier, monospace !important;
+        font-family: 'Roboto Mono', 'Courier New', monospace !important;
         font-size: 13px !important; 
-        line-height: 1.2 !important;
+        line-height: 1.1 !important;
         
-        /* Denna rad stoppar "skeva" tabs genom att aldrig radbryta */
+        /* Denna rad stoppar "skeva" tabs genom att aldrig radbryta rader */
         white-space: pre !important; 
         overflow-x: auto !important;
     }}
@@ -122,27 +120,25 @@ st.markdown(f"""
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# RITA LOGGAN
+# RITA LOGGAN (Vänster)
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="fixed-logo-left">', unsafe_allow_html=True)
 
-# RITA KNAPPEN LÅTAR (I sin fasta position till höger)
-st.markdown('<div class="fixed-nav-right">', unsafe_allow_html=True)
-if st.button("LÅTAR", key="btn_goto_list"):
+# RITA KNAPPEN LÅTAR (Höger)
+if st.button("LÅTAR", key="nav_to_list"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
     st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
 
 songs_dir = "library"
 
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas.")
+    st.error("Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
-        # ARKIVVYN
+        # --- ARKIVVYN ---
         st.markdown('<div class="header-clearance"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
@@ -162,17 +158,17 @@ else:
                             st.rerun()
 
     else:
-        # SCENVYN (Låten)
+        # --- SCENVYN (Låten) ---
         st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song_path):
             with open(st.session_state.song_path, "r", encoding="utf-8") as f:
                 content = f.read()
             
-            # Ger lite extra plats i slutet
+            # Ger lite extra plats i slutet för att kunna scrolla upp sista raderna
             full_text = content + ("\n" * 60)
 
-            st.markdown(f'<div id="song-view" class="song-reader-final">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-stage-final">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

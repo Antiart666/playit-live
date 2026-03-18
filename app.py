@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import base64
 
-# 1. Konfiguration - Maximerad yta
+# 1. Konfiguration
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -33,14 +33,14 @@ def get_all_songs(directory):
                     song_list.append({"title": clean_title(f), "path": os.path.join(root, f)})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (EXAKT POSITIONERING & INGET TANGENTBORD) ---
+# --- CSS (DEN ULTIMATA FIXEN FÖR FÄRG & TANGENTBORD) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono&display=swap');
 
-    /* STÄDA BORT ALLT STANDARD */
+    /* DÖLJ ALLT STANDARD */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -77,29 +77,34 @@ st.markdown(f"""
     div[data-testid="stSelectbox"] {{
         position: fixed !important;
         top: 15px !important;
-        left: 110px !important; /* Exakt brevid loggan */
-        width: 200px !important;
+        left: 105px !important; 
+        width: 220px !important;
         z-index: 1000005 !important;
     }}
 
-    /* STYLING AV SELECTBOX (Ljusgrå bakgrund, ingen keyboard-fokus) */
-    div[data-testid="stSelectbox"] div[role="button"] {{
-        background-color: #f8f8f8 !important; /* Ljusgrå bakgrund */
-        border: 1px solid #dddddd !important;
-        border-radius: 8px !important;
-        height: 42px !important;
-        color: #000 !important;
+    /* TVINGA LJUS FÄRG PÅ ALLT I SELECTBOX */
+    div[data-testid="stSelectbox"] > div {{
+        background-color: #f0f2f6 !important; /* Mycket ljus grå/blå ton */
+        border: 1px solid #cccccc !important;
+        border-radius: 10px !important;
+        color: #000000 !important;
     }}
-    
-    /* Förhindra tangentbord genom att dölja input-fältet som triggar det */
+
+    /* DÖDA TANGENTBORDET - Gör input-fältet oklickbart men behåll containern klickbar */
     div[data-testid="stSelectbox"] input {{
         pointer-events: none !important;
+        user-select: none !important;
         caret-color: transparent !important;
     }}
 
-    /* LÄSRUTAN (SPIKRAKA TABS) */
-    .song-reader-atomkraft {{
-        margin-top: 80px;
+    /* Fixa textfärgen inuti rullistan så den inte blir vit på vit */
+    div[data-testid="stSelectbox"] * {{
+        color: #000000 !important;
+    }}
+
+    /* LÄSRUTAN (TABS-SÄKER) */
+    .song-reader-final-boss {{
+        margin-top: 85px;
         height: 88vh !important;
         width: 100%;
         overflow-y: auto;
@@ -110,6 +115,7 @@ st.markdown(f"""
         overflow-x: auto !important;
         color: #000 !important;
         padding-bottom: 120px;
+        background-color: #ffffff !important;
     }}
 
     /* ARKIV-KNAPPAR */
@@ -129,7 +135,7 @@ all_songs = get_all_songs(songs_dir)
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# 1. Osynlig hem-trigger
+# 1. Hem-trigger (Loggan)
 st.markdown('<div class="home-trigger">', unsafe_allow_html=True)
 if st.button(" ", key="hidden_home"):
     st.session_state.view = "list"
@@ -137,11 +143,11 @@ if st.button(" ", key="hidden_home"):
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# 2. Rendera logga
+# 2. Logga
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="fixed-logo">', unsafe_allow_html=True)
 
-# 3. Rendera rullista (positioneras via CSS ovan)
+# 3. Rulllista
 song_titles = [s["title"] for s in all_songs]
 try:
     current_idx = next(i for i, s in enumerate(all_songs) if s["path"] == st.session_state.song_path)
@@ -172,4 +178,4 @@ else:
     if os.path.exists(st.session_state.song_path):
         with open(st.session_state.song_path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-reader-atomkraft">{content + ("\n"*60)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-reader-final-boss">{content + ("\n"*60)}</div>', unsafe_allow_html=True)

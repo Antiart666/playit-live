@@ -3,7 +3,7 @@ import os
 import re
 import base64
 
-# 1. Grundinställningar
+# 1. Grundinställningar - Tvingar fram en ren layout
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -14,12 +14,12 @@ st.set_page_config(
 # --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    """Snyggar till filnamn: EYE_OF_THE_TIGER -> Eye of the tiger"""
+    """Snyggar till filnamn för visning."""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Konverterar bilden till ett format som CSS kan läsa direkt."""
+    """Kodar loggan så den kan bäddas in i CSS."""
     if os.path.exists(path):
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -28,6 +28,7 @@ def get_image_base64(path):
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 def transpose_chords(text, steps):
+    """Transponerar ackord i löpande text."""
     if steps == 0: return text
     def replace_chord(match):
         chord = match.group(0)
@@ -41,47 +42,56 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Maximerad läsyta & dolda element) ---
+# --- DESIGN (Tvingar ljust tema och rundade hörn) ---
 logo_base64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* DÖLJ ALLT FRÅN STREAMLIT STANDARD */
-    header, footer, #MainMenu {{visibility: hidden !important;}}
+    /* TVINGA LJUST TEMA */
+    header, footer, .stApp {{ 
+        background-color: #ffffff !important; 
+        visibility: hidden !important;
+    }}
     
+    .stApp {{ 
+        background-color: #ffffff !important; 
+        visibility: visible !important;
+    }}
+
     .block-container {{
-        padding-top: 4.5rem !important; 
+        padding-top: 4rem !important; 
+        background-color: #ffffff !important;
         max-width: 98% !important;
     }}
 
-    /* LOGGAN (HEMKNAPPEN) */
-    .logo-wrapper {{
+    /* LOGGAN / HEMKNAPPEN */
+    .logo-anchor {{
         position: fixed;
         top: 10px;
         left: 20px;
-        z-index: 9999;
+        z-index: 10000;
         transform: rotate(-8deg);
         pointer-events: none;
     }}
     
     .logo-img-style {{
-        width: 80px; /* Något mindre enligt önskemål */
+        width: 80px;
         height: auto;
         border-radius: 12px;
         border: 2px solid #000;
         background: #000;
     }}
 
-    /* OSYNLIG KNAPP OVANPÅ LOGGAN */
+    /* OSYNLIG KLICK-YTA FÖR LOGGAN */
     div[data-testid="stButton"]:first-child button {{
         position: fixed !important;
         top: 10px !important;
         left: 20px !important;
         width: 85px !important;
         height: 55px !important;
-        z-index: 10000 !important;
+        z-index: 10001 !important;
         background: transparent !important;
         color: transparent !important;
         border: none !important;
@@ -89,128 +99,149 @@ st.markdown(f"""
         outline: none !important;
     }}
 
-    /* MAXIMERAD LÄSRUTA */
-    .song-container {{
-        height: 90vh; /* Maximerad höjd */
+    /* DEN STORA LÄSRUTAN */
+    .song-box-style {{
+        height: 88vh; 
         width: 100%;
         overflow-y: auto;
-        background-color: #ffffff;
-        color: #000000;
-        padding: 20px;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        padding: 25px;
         border: 3px solid #000000;
-        border-radius: 30px; 
+        border-radius: 35px; 
         font-family: 'Courier New', Courier, monospace;
         font-size: 17px; 
         line-height: 1.5;
         white-space: pre-wrap;
+        margin-top: 0px;
     }}
 
+    /* KNAPPAR */
     .stButton>button {{
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
         border-radius: 20px !important;
         font-weight: 700 !important;
+        font-family: 'Inter', sans-serif;
+    }}
+
+    .settings-section {{
+        margin-top: 40px;
+        padding: 25px;
+        background-color: #fcfcfc;
+        border-radius: 30px;
+        border: 2px dashed #000000;
+    }}
+
+    h1, h2, h3, p {{
+        color: #000000 !important;
+        font-family: 'Inter', sans-serif;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# 2. State & Navigation
+# --- 2. LOGIK & NAVIGATION ---
 if "view" not in st.session_state: st.session_state.view = "list"
 if "current_path" not in st.session_state: st.session_state.current_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# --- LOGGAN OCH HEMKNAPPEN ---
-if st.button("HOME", key="logo_home"):
+# HEMKNAPP (Placeras först för att CSS-selector ska hitta den)
+if st.button("HOME", key="logo_home_btn"):
     st.session_state.view = "list"
     st.rerun()
 
+# Rita upp den visuella loggan
 if logo_base64:
-    st.markdown(f'''
-        <div class="logo-wrapper">
-            <img src="data:image/png;base64,{logo_base64}" class="logo-img-style">
-        </div>
-    ''', unsafe_allow_html=True)
+    st.markdown(f'<div class="logo-anchor"><img src="data:image/png;base64,{logo_base64}" class="logo-img-style"></div>', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="logo-anchor"><div style="background:black;color:white;padding:10px;border-radius:10px;">PLAY</div></div>', unsafe_allow_html=True)
 
 songs_dir = "library"
 
-# 3. Logik
+# --- 3. RENDERING ---
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas.")
+    st.error("Mappen 'library' hittades inte. Kontrollera din GitHub-struktur.")
 else:
     if st.session_state.view == "list":
-        # --- ARKIVET (Sida 1) ---
-        st.title("Arkiv")
-        search = st.text_input("SÖK LÅT...", placeholder="Hitta låten här")
-
+        # --- ARKIV-VY ---
+        st.header("Arkiv")
+        
+        # Gå igenom mappar och hämta låtar
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
-            if category == "library": category = "Mina Låtar"
+            if category == "library": category = "Samling"
             
-            valid_files = sorted([f for f in files if f.endswith(".md")])
-            filtered_files = [f for f in valid_files if search.lower() in f.lower() or search.lower() in clean_title(f).lower()]
+            valid_songs = sorted([f for f in files if f.endswith(".md")])
             
-            if filtered_files:
-                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:15px; font-size:12px;">{category.upper()}</div>', unsafe_allow_html=True)
+            if valid_songs:
+                st.markdown(f"### {category.upper()}")
                 cols = st.columns(2)
-                for i, filename in enumerate(filtered_files):
+                for i, song_file in enumerate(valid_songs):
                     with cols[i % 2]:
-                        if st.button(clean_title(filename), key=os.path.join(root, filename)):
-                            st.session_state.current_path = os.path.join(root, filename)
+                        if st.button(clean_title(song_file), key=os.path.join(root, song_file)):
+                            st.session_state.current_path = os.path.join(root, song_file)
                             st.session_state.view = "song"
                             st.rerun()
 
-        # Verktyg längst ner
-        st.write("---")
-        st.subheader("⚙️ Verktyg")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write("**Tonart**")
-            tc1, tc2 = st.columns(2)
-            if tc1.button("-", key="t_m"): st.session_state.transpose -= 1
-            if tc2.button("+", key="t_p"): st.session_state.transpose += 1
+        # INSTÄLLNINGAR LÄNGST NER
+        st.markdown('<div class="settings-section">', unsafe_allow_html=True)
+        st.subheader("⚙️ Verktyg & Inställningar")
+        col_t, col_s = st.columns(2)
+        with col_t:
+            st.write("**Transponering**")
+            t_min, t_plus = st.columns(2)
+            if t_min.button("- Ton"): st.session_state.transpose -= 1
+            if t_plus.button("+ Ton"): st.session_state.transpose += 1
             st.write(f"Steg: {st.session_state.transpose}")
-        with c2:
-            st.write("**Scroll**")
-            sc1, sc2 = st.columns(2)
-            if sc1.button("Sakta", key="s_m"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
-            if sc2.button("Fort", key="s_p"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
+        with col_s:
+            st.write("**Auto-scroll**")
+            s_min, s_plus = st.columns(2)
+            if s_min.button("Saktare"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
+            if s_plus.button("Snabbare"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
             st.write(f"Fart: {st.session_state.scroll}")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     else:
-        # --- SCENLÄGET (Sida 2) ---
-        # "Tillbaka"-knappen (visas vid dubbelklick)
-        if st.button("← ARKIV", key="back_btn"):
+        # --- SCEN-VY ---
+        # "Dold" tillbaka-knapp via dubbelklick
+        if st.button("← TILLBAKA TILL ARKIVET", key="back_to_list"):
             st.session_state.view = "list"
             st.rerun()
 
+        # Läs in låtfilen
         with open(st.session_state.current_path, "r", encoding="utf-8") as f:
-            content = f.read()
+            song_content = f.read()
         
-        content = transpose_chords(content, st.session_state.transpose)
-        display_text = content + ("\n" * 50)
+        # Bearbeta texten
+        song_content = transpose_chords(song_content, st.session_state.transpose)
+        full_text = song_content + ("\n" * 50)
 
+        # Injicera JavaScript för Dubbelklick och Scroll
         st.markdown(f"""
             <script>
-            // Logik för dubbelklicks-menyn
-            var btns = window.parent.document.querySelectorAll('div[data-testid="stButton"]');
-            var backBtn = Array.from(btns).find(b => b.innerText.includes("ARKIV"));
+            // Hitta tillbaka-knappen och dölj den
+            var allBtns = window.parent.document.querySelectorAll('div[data-testid="stButton"]');
+            var backBtn = Array.from(allBtns).find(b => b.innerText.includes("ARKIVET"));
             if (backBtn) backBtn.style.display = 'none';
 
+            // Dubbelklick för att visa knappen
             window.parent.document.addEventListener('dblclick', function() {{
                 if (backBtn) backBtn.style.display = backBtn.style.display === 'none' ? 'block' : 'none';
             }});
 
-            // Auto-scroll logik
-            var box = window.parent.document.getElementById("song-box");
-            if (window.sInterval) clearInterval(window.sInterval);
+            // Scroll-logik
+            var container = window.parent.document.getElementById("song-box-id");
+            if (window.playitScroll) clearInterval(window.playitScroll);
             if ({st.session_state.scroll} > 0) {{
-                var delay = (11 - {st.session_state.scroll}) * 35;
-                window.sInterval = setInterval(function() {{ if (box) box.scrollTop += 1; }}, delay);
+                var speed = (11 - {st.session_state.scroll}) * 35;
+                window.playitScroll = setInterval(function() {{
+                    if (container) container.scrollTop += 1;
+                }}, speed);
             }}
             </script>
         """, unsafe_allow_html=True)
 
-        # Låtrutan (Nu utan rubrik och större!)
-        st.markdown(f'<div id="song-box" class="song-container">{display_text}</div>', unsafe_allow_html=True)
+        # Visa den stora rutan
+        st.markdown(f'<div id="song-box-id" class="song-box-style">{full_text}</div>', unsafe_allow_html=True)

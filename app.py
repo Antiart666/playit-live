@@ -31,10 +31,10 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. THE TOTAL LOCKDOWN UI (CSS & JS) ---
+# --- 2. CSS & THE "NO-INPUT" JAVASCRIPT ---
 st.markdown(f"""
     <style>
-    /* Scen-läge */
+    /* Scen-inställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -43,7 +43,7 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* HEADER-BAR */
+    /* HEADER */
     .header-bar {{
         position: fixed;
         top: 0;
@@ -55,12 +55,12 @@ st.markdown(f"""
         border-bottom: 2px solid #f0f0f0;
     }}
 
-    /* LOGO (MASSIV 150px) */
+    /* LOGO (MASSIV 160px) */
     .stage-logo {{
         position: fixed;
         left: 10px;
         top: 5px;
-        height: 150px;
+        height: 160px;
         width: auto;
         transform: rotate(-6deg);
         z-index: 1000005 !important;
@@ -76,25 +76,10 @@ st.markdown(f"""
         z-index: 1000010 !important;
     }}
 
-    /* TANGENTBORDS-DÖDARE (HÄNGSLEN) */
+    /* DÖDA TANGENTBORDET VIA CSS (BACKUP) */
     div[data-baseweb="select"] input {{
-        caret-color: transparent !important;
         pointer-events: none !important;
-        user-select: none !important;
-    }}
-    
-    /* DEN OSYNLIGA SKÖLDEN (LIVREM) */
-    /* Denna ligger ovanpå rullistan så att fingret aldrig nuddar textfältet */
-    .selectbox-shield {{
-        position: fixed;
-        top: 25px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 35%;
-        height: 45px;
-        z-index: 1000011;
-        background: rgba(255,255,255,0); /* Helt osynlig */
-        cursor: pointer;
+        caret-color: transparent !important;
     }}
 
     /* START-KNAPP (HTML-LÄNK) */
@@ -104,10 +89,10 @@ st.markdown(f"""
         right: 15px;
         background-color: #000000;
         color: #ffffff !important;
-        padding: 12px 25px;
+        padding: 12px 30px;
         border-radius: 50px;
         font-weight: 900;
-        font-size: 15px;
+        font-size: 16px;
         text-decoration: none !important;
         z-index: 1000015 !important;
         text-transform: uppercase;
@@ -115,7 +100,7 @@ st.markdown(f"""
 
     /* SONG DISPLAY */
     .song-area {{
-        margin-top: 170px;
+        margin-top: 180px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
@@ -126,39 +111,38 @@ st.markdown(f"""
     </style>
 
     <script>
-    // JAVASCRIPT LOCKDOWN (NUCLEAR OPTION)
-    function forceNoKeyboard() {{
+    // DENNA GÅNGEN SÄTTER VI FÄLTET TILL DISABLED MEN BEHÅLLER KLICKBARHETEN
+    function killKeyboard() {{
         const inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(input => {{
-            // 1. Gör fältet oredigerbart
-            input.setAttribute('readonly', 'true');
-            // 2. Berätta för mobilen att inget tangentbord behövs
-            input.setAttribute('inputmode', 'none');
-            // 3. Om fältet ändå får fokus, kasta ut det direkt
-            if (window.parent.document.activeElement === input) {{
-                input.blur();
-            }}
+            // Genom att sätta 'disabled' på själva input-fältet (men inte dess container)
+            // så kan webbläsaren inte visa tangentbordet, men Streamlit öppnar listan ändå.
+            input.setAttribute('disabled', 'true');
+            input.style.cursor = 'pointer';
+            // Vi tar även bort eventuella fokus-ramar
+            input.style.border = 'none';
         }});
     }}
-    // Körs 20 gånger i sekunden
-    setInterval(forceNoKeyboard, 50);
+    setInterval(killKeyboard, 100);
     </script>
 """, unsafe_allow_html=True)
 
 # --- 3. RENDERING ---
 
+# Header bakgrund
 st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
-# Lägg till den osynliga skölden för att skydda rullistan från klick-fokus
-st.markdown('<div class="selectbox-shield"></div>', unsafe_allow_html=True)
 
+# Logo
 logo_b64 = get_logo_b64()
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:40px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:45px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
 
+# START-knapp
 st.markdown('<a href="/" target="_self" class="start-link">START</a>', unsafe_allow_html=True)
 
+# Låtlista
 song_map = get_songs()
 options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
@@ -172,7 +156,7 @@ selected = st.selectbox(
     options=options,
     index=current_idx,
     label_visibility="collapsed",
-    key="song_picker_v3_1"
+    key="song_picker_v3_2"
 )
 
 if selected != st.session_state.active_song:

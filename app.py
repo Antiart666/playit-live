@@ -3,7 +3,7 @@ import os
 import re
 import base64
 
-# 1. Konfiguration - Maximerad yta och ren layout
+# 1. Konfiguration - Maximerad yta för scenen
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -43,7 +43,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Logga vänster, LÅTAR-knapp höger, båda med skugga) ---
+# --- DESIGN (Logga höger (rak), LÅTAR-knapp vänster, skuggor, fixade tabs, smarta kontroller) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -64,64 +64,63 @@ st.markdown(f"""
         padding-right: 0.8rem !important;
     }}
 
-    /* LOGGAN (Uppe till vänster, lutar -8 grader, med skugga) */
-    .nav-logo-fixed-left {{
+    /* LOGGAN (Uppe till höger, rak, med skugga) */
+    .nav-logo-fixed-right {{
         position: fixed !important;
         top: 20px !important;
-        left: 20px !important;
-        width: 110px !important;
+        right: 20px !important;
+        width: 102px !important;
         height: auto !important;
         z-index: 999999 !important;
-        transform: rotate(-8deg) !important;
         filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3)); /* Skugga på loggan */
         pointer-events: none;
     }}
 
-    /* LÅTAR-KNAPPEN (Uppe till höger, med skugga) */
+    /* LÅTAR-KNAPPEN (Uppe till vänster, med skugga) */
     div[data-testid="stButton"] > button[key="main_nav_btn"] {{
         position: fixed !important;
         top: 20px !important;
-        right: 20px !important;
-        width: 140px !important;
-        height: 60px !important;
+        left: 20px !important;
+        width: 130px !important;
+        height: 55px !important;
         z-index: 1000000 !important;
         background-color: #ffffff !important;
         border: 3px solid #000000 !important;
         border-radius: 15px !important;
         font-weight: 900 !important;
-        font-size: 18px !important;
+        font-size: 16px !important;
         color: #000000 !important;
         text-transform: uppercase !important;
         cursor: pointer !important;
-        /* Dubbel skugga för både djup och tydlighet */
-        box-shadow: 4px 4px 10px rgba(0,0,0,0.2), 4px 4px 0px #000000 !important;
+        /* Dubbel skugga för djup */
+        box-shadow: 4px 4px 10px rgba(0,0,0,0.15), 4px 4px 0px #000000 !important;
     }}
 
-    /* MELLANRUM FÖR ATT UNDVIKA ATT LISTAN HAMNAR BAKOM HEADER */
-    .top-margin-barrier {{
-        height: 110px;
+    /* TOP-MARGIN FÖR Header */
+    .header-spacer {{
+        height: 105px;
         display: block;
     }}
 
-    /* LÄSRUTAN (GRÄNSLÖS & TABS-VÄNLIG) */
-    .song-reader-area {{
-        height: 92vh !important; 
+    /* LÄSRUTAN (GRÄNSLÖS & TABS-SÄKER) */
+    .song-reader-pro {{
+        height: 80vh !important; /* Ger plats för kontrollerna längst ner */
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
         color: #000000 !important;
         padding: 5px !important;
-        border: none !important; /* Ingen ram runt texten */
+        border: none !important;
         
-        /* Monospace (Courier) för perfekta tabs */
+        /* Monospace för perfekta tabs */
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 14px !important; 
         line-height: 1.2 !important;
-        white-space: pre !important; 
+        white-space: pre !important; /* Viktigt för raka tabs */
         overflow-x: auto !important;
     }}
 
-    /* ARKIV-KNAPPAR I LISTAN */
+    /* ARKIV-KNAPPAR */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
@@ -131,30 +130,88 @@ st.markdown(f"""
         width: 100% !important;
     }}
 
-    /* VERKTYGSBOX LÄNGST NER */
-    .settings-tray {{
+    /* VERKTYGSBOX */
+    .tools-tray {{
         margin: 40px 10px;
         padding: 25px;
         background-color: #fcfcfc;
         border: 2px dashed #000;
         border-radius: 20px;
     }}
+    
+    /* 5. SMARTA KONTROLLER (Pansarsäker layout längst ner) */
+    .stage-controls {{
+        position: fixed !important;
+        bottom: 0px !important;
+        left: 0px !important;
+        width: 100% !important;
+        height: 10vh !important;
+        background-color: #ffffff !important;
+        border-top: 3px solid #000000;
+        z-index: 999997 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0px -5px 15px rgba(0,0,0,0.2);
+    }}
+    
+    /* Stilar för tonartdropdown */
+    div[data-testid="stSelectbox"] {{
+        width: 100% !important;
+        border: none !important;
+        background-color: transparent !important;
+    }}
+    
+    div[data-testid="stSelectbox"] > label {{
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        text-transform: uppercase !important;
+    }}
+    
+    div[data-testid="stSelectbox"] > div {{
+        border: 2px solid #000000 !important;
+        border-radius: 10px !important;
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 18px !important;
+    }}
+    
+    /* Stilar för auto-scroll-toggle */
+    div[data-testid="stCheckbox"] {{
+        margin-top: 5px;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 12px !important;
+        text-transform: uppercase !important;
+        border: none !important;
+    }}
+    
+    div[data-testid="stCheckbox"] > label > span {{
+        border: 2px solid #000000 !important;
+        border-radius: 10px !important;
+    }}
+    
+    /* När togglen är på (grön) */
+    div[data-testid="stCheckbox"] input:checked + span {{
+        background-color: #4CAF50 !important;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. LOGIK & STATE ---
+# --- 2. LOGIK & NAVIGATION ---
 if "view" not in st.session_state: st.session_state.view = "list"
 if "current_song_path" not in st.session_state: st.session_state.current_song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
 
-# RITA LOGGAN (Vänster)
+# RITA LOGGAN (Höger)
 if logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo-fixed-left">', unsafe_allow_html=True)
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo-fixed-right">', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="nav-logo-fixed-left" style="font-weight:900;">LOGO</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-logo-fixed-right" style="font-weight:900;">LOGO</div>', unsafe_allow_html=True)
 
-# RITA NAV-KNAPPEN (Höger)
+# RITA NAV-KNAPPEN (Vänster)
 if st.button("LÅTAR", key="main_nav_btn"):
     st.session_state.view = "list"
     st.session_state.current_song_path = ""
@@ -165,11 +222,11 @@ songs_dir = "library"
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' hittades inte. Kontrollera din GitHub-struktur.")
+    st.error("Mappen 'library' saknas på GitHub.")
 else:
     if st.session_state.view == "list":
         # ARKIVVYN
-        st.markdown('<div class="top-margin-barrier"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="header-spacer"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
@@ -188,14 +245,14 @@ else:
                             st.rerun()
 
         # VERKTYGSPANEL
-        st.markdown('<div class="settings-tray">', unsafe_allow_html=True)
+        st.markdown('<div class="tools-tray">', unsafe_allow_html=True)
         st.subheader("⚙️ Verktyg")
         c1, c2 = st.columns(2)
         with c1:
             st.write("Tonart")
             t1, t2 = st.columns(2)
-            if t1.button("-", key="t_m"): st.session_state.transpose -= 1
-            if t2.button("+", key="t_p"): st.session_state.transpose += 1
+            if t1.button("- Ton", key="t_m"): st.session_state.transpose -= 1
+            if t2.button("+ Ton", key="t_p"): st.session_state.transpose += 1
             st.write(f"Steg: {st.session_state.transpose}")
         with c2:
             st.write("Scroll")
@@ -207,19 +264,40 @@ else:
 
     else:
         # SCENVYN (Låten)
-        # Sänker rutan något så att de flytande knapparna inte skymmer första raden
-        st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.current_song_path):
             with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
                 content = f.read()
             
+            # 5. SMARTA KONTROLLER LÄNGST NER (Pansarsäker layout)
+            st.markdown('<div class="stage-controls">', unsafe_allow_html=True)
+            ctrl_col1, ctrl_col2, ctrl_col3, ctrl_col4, ctrl_col5 = st.columns([2, 3, 2, 2, 3])
+            
+            with ctrl_col2:
+                # Tonart (Dropout och label)
+                # Vi skapar en dropdown för transponering (steps)
+                selected_steg = st.selectbox("TONART", options=[f"{s}" for s in range(-6, 7)], index=st.session_state.transpose + 6, key="transpose_dropout")
+                st.session_state.transpose = int(selected_steg)
+                # Vi räknar ut aktuell tonart (baserat på C)
+                current_key = CHORDS[st.session_state.transpose % 12]
+                st.write(f"({current_key})") # Visar aktuell tonart
+
+            with ctrl_col4:
+                # Auto-scroll-toggle
+                scroll_on = st.checkbox("AUTO-SCROLL", value=st.session_state.scroll_speed > 0, key="scroll_toggle")
+                
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Transponera och visa låten
             content = transpose_chords(content, st.session_state.transpose)
             full_text = content + ("\n" * 65)
 
-            # Auto-scroll-skript
-            if st.session_state.scroll_speed > 0:
-                delay = (11 - st.session_state.scroll_speed) * 45
+            # Auto-scroll-skript (Lokaliserad fix)
+            if scroll_on:
+                # Om scroll_speed är 0, ställ in en standardhastighet
+                current_speed = st.session_state.scroll_speed if st.session_state.scroll_speed > 0 else 5
+                delay = (11 - current_speed) * 45
                 st.markdown(f"""
                     <script>
                     var box = document.getElementById("song-view");
@@ -230,7 +308,7 @@ else:
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-reader-area">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-reader-pro">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

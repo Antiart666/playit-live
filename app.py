@@ -2,9 +2,8 @@ import streamlit as st
 import os
 import base64
 from pathlib import Path
-from urllib.parse import quote
 
-# --- 1. CORE CONFIGURATION ---
+# --- 1. CONFIG ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -24,10 +23,9 @@ def get_base64_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-# --- 2. THE STAGE-SAFE UI (LJUS DESIGN + MAXI-LOGO) ---
+# --- 2. STAGE-SAFE UI (LIGHT MODE) ---
 st.markdown(f"""
     <style>
-    /* Grundinställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -38,19 +36,19 @@ st.markdown(f"""
     }}
 
     .main .block-container {{
-        padding-top: 130px !important; /* Ökad för att ge plats åt större header */
+        padding-top: 150px !important; /* Mer plats för XXL-loggan */
         padding-left: 20px !important;
         padding-right: 20px !important;
         max-width: 100% !important;
     }}
 
-    /* FIXED HEADER (HÖGRE FÖR ATT RYMMA LOGGAN) */
+    /* FIXED HEADER */
     .stage-header {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 110px; /* Ökad höjd */
+        height: 130px; /* Höjd för XXL-logo */
         background-color: #ffffff;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
@@ -60,83 +58,80 @@ st.markdown(f"""
         z-index: 999999;
     }}
 
-    /* LOGOTYP (70% STÖRRE) */
+    /* LOGOTYP (YTTERLIGARE 20% STÖRRE) */
     .logo-link {{
         transform: rotate(-8deg);
         text-decoration: none;
         display: block;
         flex-shrink: 0;
-        margin-left: 10px;
     }}
     
     .logo-img {{
-        height: 110px; /* Tidigare ~65px, nu +70% ≈ 110px */
+        height: 135px; /* Uppskalad ytterligare */
         width: auto;
-        border-radius: 15px;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 42px; /* Skalat upp texten också */
+        font-size: 52px; /* Gigantisk fallback-text */
         color: #000000;
         background: #ffffff;
-        padding: 10px 25px;
-        border: 4px solid #000000;
+        padding: 10px 30px;
+        border: 5px solid #000000;
         border-radius: 15px;
     }}
 
-    /* NATIVE SELECT (LJUS & RUNDAD) */
+    /* NATIVE SELECT (FÖR ENKEL NAVIGATION) */
     .nav-center {{
         flex-grow: 1;
-        margin: 0 20px;
-        max-width: 50%;
+        margin: 0 15px;
+        max-width: 45%;
     }}
 
     .native-select {{
         width: 100%;
-        height: 55px;
+        height: 60px;
         background-color: #ffffff;
         color: #000000;
-        border: 2px solid #eeeeee;
-        border-radius: 18px;
+        border: 2px solid #dddddd;
+        border-radius: 20px;
         padding: 0 15px;
-        font-size: 18px;
+        font-size: 20px;
         appearance: none;
         -webkit-appearance: none;
-        cursor: pointer;
         outline: none;
     }}
 
     /* EXIT-KNAPP */
     .exit-btn {{
-        background-color: #f8f8f8;
+        background-color: #eeeeee;
         color: #000000 !important;
-        padding: 14px 22px;
-        border-radius: 18px;
+        padding: 15px 25px;
+        border-radius: 20px;
         text-decoration: none;
-        font-weight: 700;
+        font-weight: 800;
         font-size: 14px;
         text-transform: uppercase;
-        border: 1px solid #eeeeee;
+        border: 1px solid #cccccc;
         flex-shrink: 0;
     }}
 
-    /* TAB-CONTENT */
+    /* LÅT-INNEHÅLL */
     .tab-content {{
         font-family: 'Roboto Mono', monospace !important;
         white-space: pre !important;
         overflow-x: auto !important;
         color: #000000 !important;
-        font-size: 22px; /* Något större för bättre läsbarhet */
+        font-size: 22px;
         line-height: 1.6;
         padding-bottom: 85vh;
-        -webkit-overflow-scrolling: touch;
     }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LOGIC & NAVIGATION ---
+# --- 3. DATA & PARAMS ---
 song_list = get_library()
+# Hämta parameter manuellt för maximal säkerhet
 query_params = st.query_params
 active_song = query_params.get("song", None)
 
@@ -149,39 +144,56 @@ if LOGO_PATH.exists():
     except:
         pass
 
-options_html = f'<option value="" {"selected" if not active_song else ""}>VÄLJ LÅT...</option>'
+# Bygg options
+options_html = f'<option value="">VÄLJ LÅT...</option>'
 for song in song_list:
-    is_selected = "selected" if active_song == song else ""
-    options_html += f'<option value="{song}" {is_selected}>{song.upper()}</option>'
+    sel = 'selected' if active_song == song else ''
+    options_html += f'<option value="{song}" {sel}>{song.upper()}</option>'
 
+# JAVASCRIPT-NAVIGATION (Tvingar omladdning vid klick)
 st.markdown(f"""
     <div class="stage-header">
         <a href="/" target="_self" class="logo-link">
             {logo_html}
         </a>
         <div class="nav-center">
-            <select class="native-select" onchange="window.location.href='?song=' + encodeURIComponent(this.value)">
+            <select class="native-select" id="songSelect">
                 {options_html}
             </select>
         </div>
         <a href="/" target="_self" class="exit-btn">EXIT</a>
     </div>
+
+    <script>
+    var select = window.parent.document.getElementById("songSelect");
+    if (!select) {{
+        // Om vi kör i iframe (standard Streamlit) måste vi leta i parent
+        select = document.getElementById("songSelect");
+    }}
+    
+    select.addEventListener('change', function() {{
+        var val = encodeURIComponent(this.value);
+        if (val) {{
+            window.parent.location.assign(window.parent.location.origin + window.parent.location.pathname + "?song=" + val);
+        }} else {{
+            window.parent.location.assign(window.parent.location.origin + window.parent.location.pathname);
+        }}
+    }});
+    </script>
 """, unsafe_allow_html=True)
 
 # --- 5. RENDER CONTENT ---
 if active_song and active_song in song_list:
     file_path = LIB_DIR / f"{active_song}.md"
-    try:
+    if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
         st.markdown(f'<div class="tab-content">{content}</div>', unsafe_allow_html=True)
-    except Exception:
-        st.error("Filfel.")
 else:
-    # Helt tom startsida
+    # Startsida helt tom
     st.write("")
 
-# --- 6. AUTO-SCROLL TO TOP ---
+# --- 6. CLEANUP SCRIPT ---
 st.markdown("""
     <script>
     var mainContainer = window.parent.document.querySelector('.main');

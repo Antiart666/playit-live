@@ -3,7 +3,7 @@ import os
 import base64
 from pathlib import Path
 
-# --- 1. CORE SETUP ---
+# --- 1. CONFIG ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -11,7 +11,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Bibliotek och Logga
+# Session State för stabil laddning
+if "active_song" not in st.session_state:
+    st.session_state.active_song = "VÄLJ LÅT..."
+
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
@@ -29,10 +32,10 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. THE STAGE-READY UI (TOTAL LOCKDOWN) ---
+# --- 2. CSS & AGGRESSIVE KEYBOARD KILLER ---
 st.markdown(f"""
     <style>
-    /* Bakgrund & Clean UI */
+    /* Scen-inställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -41,13 +44,13 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* FIXED HEADER */
+    /* HEADER BAKGRUND */
     .header-anchor {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 160px;
+        height: 140px;
         background: #ffffff;
         z-index: 999990;
         border-bottom: 2px solid #f0f0f0;
@@ -58,74 +61,73 @@ st.markdown(f"""
         position: fixed;
         left: 15px;
         top: 5px;
-        height: 160px; /* Ännu lite större */
+        height: 130px;
         width: auto;
         transform: rotate(-6deg);
         z-index: 1000005 !important;
     }}
 
-    /* HTML NATIVE SELECT (Tangbordssäkert på riktigt) */
-    .native-nav-container {{
-        position: fixed;
-        top: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 30%;
-        z-index: 1000010;
-    }}
-
-    .pure-select {{
-        width: 100%;
-        height: 50px;
-        background: #ffffff;
-        border: 2px solid #000;
-        border-radius: 12px;
-        font-size: 18px;
-        font-weight: 700;
-        padding: 0 10px;
-        appearance: none;
-        -webkit-appearance: none;
-        cursor: pointer;
-        outline: none;
-        text-align: center;
-    }}
-
-    /* START-KNAPP (Pillerformad) */
-    .start-anchor {{
-        position: fixed;
-        top: 30px;
-        right: 20px;
-        background: #000000;
-        color: #ffffff !important;
-        padding: 12px 30px;
-        border-radius: 50px;
-        font-weight: 900;
-        font-size: 16px;
-        text-decoration: none !important;
+    /* RULLIST (35% BREDD + CENTER) */
+    div[data-testid="stSelectbox"] {{
+        position: fixed !important;
+        top: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 35% !important;
         z-index: 1000010 !important;
+    }}
+
+    /* DÖDA TANGENTBORDET (CSS) */
+    div[data-baseweb="select"] input {{
+        caret-color: transparent !important;
+        pointer-events: none !important;
+    }}
+
+    /* START-KNAPP (TOP-RIGHT) */
+    .stButton > button {{
+        position: fixed !important;
+        top: 25px !important;
+        right: 20px !important;
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        border-radius: 50px !important;
+        border: none !important;
+        padding: 10px 25px !important;
+        font-weight: 900 !important;
+        z-index: 1000015 !important;
         text-transform: uppercase;
     }}
 
     /* SONG DISPLAY */
     .song-area {{
-        margin-top: 180px;
+        margin-top: 150px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
         white-space: pre-wrap !important;
         color: #000 !important;
-        padding-bottom: 85vh;
+        padding-bottom: 80vh;
     }}
     </style>
+
+    <script>
+    // NUCLEAR OPTION FÖR TANGENTBORD: 
+    // Hindrar alla input-fält från att någonsin bli editerbara
+    function disableKeyboard() {{
+        const inputs = window.parent.document.querySelectorAll('input');
+        inputs.forEach(input => {{
+            input.setAttribute('readonly', 'true');
+            input.setAttribute('inputmode', 'none'); // Talar om för mobilen: "Visa inget tangentbord"
+            if (window.parent.document.activeElement === input) {{
+                input.blur();
+            }}
+        }});
+    }}
+    setInterval(disableKeyboard, 100);
+    </script>
 """, unsafe_allow_html=True)
 
-# --- 3. LOGIC & DATA ---
-song_map = get_songs()
-# Hämta vald låt från URL-parameter (robustaste sättet för HTML-select)
-query_params = st.query_params
-active_song_file = query_params.get("song", None)
-
-# --- 4. RENDER UI ---
+# --- 3. RENDERING ---
 
 # Header & Logo
 logo_b64 = get_logo_b64()
@@ -134,35 +136,45 @@ st.markdown('<div class="header-anchor"></div>', unsafe_allow_html=True)
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:45px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:40px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
 
-# START-knapp
-st.markdown('<a href="/" target="_self" class="start-anchor">START</a>', unsafe_allow_html=True)
+# START-knapp (Reset)
+if st.button("START"):
+    st.session_state.active_song = "VÄLJ LÅT..."
+    st.rerun()
 
-# BYGG DEN "TANGENTBORDSSÄKRA" RULLISTEN
-# Vi bygger den i ren HTML för att slippa Streamlits <input>-taggar
-options_html = '<option value="">VÄLJ LÅT...</option>'
-for snyggt_namn, filnamn in song_map.items():
-    selected = 'selected' if active_song_file == filnamn else ''
-    options_html += f'<option value="{filnamn}" {selected}>{snyggt_namn.upper()}</option>'
+# Låtlista & Rullist
+song_map = get_songs()
+options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
-st.markdown(f"""
-    <div class="native-nav-container">
-        <select class="pure-select" onchange="window.location.href='?song=' + encodeURIComponent(this.value)">
-            {options_html}
-        </select>
-    </div>
-""", unsafe_allow_html=True)
+# Hitta rätt index för att hålla kvar valet efter rerun
+try:
+    current_idx = options.index(st.session_state.active_song)
+except ValueError:
+    current_idx = 0
 
-# --- 5. DISPLAY CONTENT ---
-if active_song_file and active_song_file in [f.stem for f in LIB_DIR.glob("*.md")]:
-    path = LIB_DIR / f"{active_song_file}.md"
+selected = st.selectbox(
+    "Välj låt",
+    options=options,
+    index=current_idx,
+    label_visibility="collapsed",
+    key="song_picker"
+)
+
+# Vid val - uppdatera state och ladda om
+if selected != st.session_state.active_song:
+    st.session_state.active_song = selected
+    st.rerun()
+
+# --- 4. DISPLAY ---
+if st.session_state.active_song != "VÄLJ LÅT...":
+    file_name = song_map[st.session_state.active_song]
+    path = LIB_DIR / f"{file_name}.md"
+    
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
-else:
-    st.empty()
+        st.markdown(f'<div class="song-area">{content}\n\n' + ('\n' * 60) + '</div>', unsafe_allow_html=True)
 
-# Scroll till toppen vid omladdning
+# Scroll-fix till toppen
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# State-hantering
 if "active_song" not in st.session_state:
     st.session_state.active_song = "VÄLJ LÅT..."
 
@@ -32,10 +31,10 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. THE RIGID STAGE UI (CSS & JS) ---
+# --- 2. THE TOTAL LOCKDOWN UI (CSS & JS) ---
 st.markdown(f"""
     <style>
-    /* Scen-läge: Alltid vit bakgrund */
+    /* Scen-läge */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -44,7 +43,7 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* HEADER-PLATTA */
+    /* HEADER-BAR */
     .header-bar {{
         position: fixed;
         top: 0;
@@ -77,13 +76,28 @@ st.markdown(f"""
         z-index: 1000010 !important;
     }}
 
-    /* DÖDA TANGENTBORDET */
+    /* TANGENTBORDS-DÖDARE (HÄNGSLEN) */
     div[data-baseweb="select"] input {{
         caret-color: transparent !important;
         pointer-events: none !important;
+        user-select: none !important;
+    }}
+    
+    /* DEN OSYNLIGA SKÖLDEN (LIVREM) */
+    /* Denna ligger ovanpå rullistan så att fingret aldrig nuddar textfältet */
+    .selectbox-shield {{
+        position: fixed;
+        top: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 35%;
+        height: 45px;
+        z-index: 1000011;
+        background: rgba(255,255,255,0); /* Helt osynlig */
+        cursor: pointer;
     }}
 
-    /* START-KNAPP (REN HTML-LÄNK FÖR ATT UNDVIKA EXPANSION) */
+    /* START-KNAPP (HTML-LÄNK) */
     .start-link {{
         position: fixed;
         top: 25px;
@@ -97,11 +111,9 @@ st.markdown(f"""
         text-decoration: none !important;
         z-index: 1000015 !important;
         text-transform: uppercase;
-        display: inline-block;
-        line-height: 1;
     }}
 
-    /* SONG DISPLAY (DIN SPEC) */
+    /* SONG DISPLAY */
     .song-area {{
         margin-top: 170px;
         font-family: 'Roboto Mono', monospace !important;
@@ -114,41 +126,42 @@ st.markdown(f"""
     </style>
 
     <script>
-    // TVINGA TANGENTBORDET ATT STAMPA PÅ SAMMA STÄLLE
-    function killKeyboard() {{
+    // JAVASCRIPT LOCKDOWN (NUCLEAR OPTION)
+    function forceNoKeyboard() {{
         const inputs = window.parent.document.querySelectorAll('input');
         inputs.forEach(input => {{
+            // 1. Gör fältet oredigerbart
             input.setAttribute('readonly', 'true');
-            input.setAttribute('inputmode', 'none'); // Det säkraste sättet på mobil
+            // 2. Berätta för mobilen att inget tangentbord behövs
+            input.setAttribute('inputmode', 'none');
+            // 3. Om fältet ändå får fokus, kasta ut det direkt
             if (window.parent.document.activeElement === input) {{
                 input.blur();
             }}
         }});
     }}
-    setInterval(killKeyboard, 100);
+    // Körs 20 gånger i sekunden
+    setInterval(forceNoKeyboard, 50);
     </script>
 """, unsafe_allow_html=True)
 
 # --- 3. RENDERING ---
 
-# Rita Header-bakgrund
 st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
+# Lägg till den osynliga skölden för att skydda rullistan från klick-fokus
+st.markdown('<div class="selectbox-shield"></div>', unsafe_allow_html=True)
 
-# Logga
 logo_b64 = get_logo_b64()
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
     st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:40px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
 
-# START-knapp (Nu som HTML-länk som tvingar reset via URL)
 st.markdown('<a href="/" target="_self" class="start-link">START</a>', unsafe_allow_html=True)
 
-# Låtlista & Rullist
 song_map = get_songs()
 options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
-# Håll kvar valet vid omladdning
 try:
     current_idx = options.index(st.session_state.active_song)
 except:
@@ -159,10 +172,9 @@ selected = st.selectbox(
     options=options,
     index=current_idx,
     label_visibility="collapsed",
-    key="song_picker_v3"
+    key="song_picker_v3_1"
 )
 
-# Vid nytt val
 if selected != st.session_state.active_song:
     st.session_state.active_song = selected
     st.rerun()
@@ -175,8 +187,6 @@ if st.session_state.active_song != "VÄLJ LÅT...":
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        # Din spec: 15px, Roboto Mono, line-height 1.2
         st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 
-# Scroll-fix
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

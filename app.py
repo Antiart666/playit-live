@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from pathlib import Path
 
-# --- 1. GRUNDLÄGGANDE KONFIGURATION ---
+# --- 1. CONFIG & INITIALIZATION ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -10,33 +10,39 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Filhantering: Mappen 'library' krävs
+# Säkerställ att biblioteket finns
 LIB_DIR = Path("library")
-if not LIB_DIR.exists():
-    LIB_DIR.mkdir(parents=True, exist_ok=True)
-    # Skapa demo-filer om tomt
-    (LIB_DIR / "Exempellåt 1.md").write_text("# LÅT 1\nC      G\nDu är min vän", encoding="utf-8")
+LIB_DIR.mkdir(exist_ok=True)
 
-# Hämta och sortera låtlista
-song_files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
+# Whitelist-validering av filer
+def get_song_list():
+    return sorted([f.stem for f in LIB_DIR.glob("*.md")])
 
-# --- 2. UI & CSS (DESIGN-REGLER) ---
+def is_valid_song(song_name):
+    return (LIB_DIR / f"{song_name}.md").exists()
+
+song_list = get_song_list()
+
+# --- 2. CSS: STAGE-SAFE DESIGN & UI ---
 st.markdown(f"""
     <style>
-    /* Grundfärg: Vit bakgrund, Svart text */
-    .stApp {{
+    /* Strikt vit bakgrund och svart text för att tvinga bort Dark Mode-kaos */
+    html, body, [data-testid="stAppViewContainer"] {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
 
-    /* Ta bort Streamlits standardmarginaler */
+    /* Ta bort Streamlits standard-padding och menyer */
+    [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
+        display: none !important;
+    }}
+    
     .block-container {{
         padding-top: 80px !important;
         padding-left: 10px !important;
         padding-right: 10px !important;
+        max-width: 100% !important;
     }}
-    
-    #MainMenu, footer, header {{visibility: hidden;}}
 
     /* FIXED HEADER */
     .fixed-header {{
@@ -46,139 +52,171 @@ st.markdown(f"""
         width: 100%;
         height: 70px;
         background-color: #ffffff;
-        border-bottom: 2px solid #eeeeee;
+        border-bottom: 2px solid #000000;
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 15px;
-        z-index: 99999;
+        z-index: 999999;
     }}
 
-    /* LOGOTYP (Lutad & Klickbar) */
-    .logo-box {{
-        transform: rotate(-8deg);
-        background-color: #000000;
-        color: #ffffff;
-        padding: 5px 10px;
-        font-weight: 900;
-        font-size: 14px;
+    /* LOGOTYP (HEM-KNAPP) */
+    .logo-link {{
         text-decoration: none;
-        cursor: pointer;
-        border-radius: 3px;
+        transform: rotate(-8deg);
+        display: inline-block;
+    }}
+    
+    .logo-img {{
+        height: 45px;
+        width: auto;
+        /* Fallback om logo.png saknas */
+        font-weight: 900;
+        color: #000000;
+        border: 3px solid #000000;
+        padding: 2px 8px;
     }}
 
-    /* NATIVE SELECT (Inget tangentbord) */
-    .nav-select-container {{
+    /* NATIVE SELECT (INGET TANGENTBORD) */
+    .nav-center {{
         flex-grow: 1;
-        margin: 0 10px;
-        max-width: 60%;
+        margin: 0 15px;
+        max-width: 50%;
     }}
 
     .native-select {{
         width: 100%;
-        height: 40px;
-        background-color: #333333;
+        height: 45px;
+        background-color: #222222; /* Mörk bakgrund för kontrast i headern */
         color: #ffffff;
-        border-radius: 8px;
-        padding: 5px;
-        font-size: 16px; /* Förhindrar auto-zoom i iOS */
+        border-radius: 5px;
         border: none;
+        padding: 0 10px;
+        font-size: 16px; /* Viktigt: 16px+ förhindrar auto-zoom på iOS */
+        appearance: none;
+        -webkit-appearance: none;
     }}
 
-    /* EXIT KNAPP */
-    .exit-link {{
-        background-color: #ff4b4b;
-        color: white !important;
-        padding: 8px 12px;
+    /* EXIT-KNAPP */
+    .exit-btn {{
+        background-color: #ff0000;
+        color: #ffffff !important;
+        padding: 10px 15px;
         border-radius: 5px;
         text-decoration: none;
         font-weight: bold;
-        font-size: 12px;
+        font-size: 14px;
         text-transform: uppercase;
     }}
 
-    /* TEXT-RENDERING (Tabs & Ackord) */
-    .tab-area {{
-        font-family: 'Roboto Mono', 'Courier New', monospace !important;
+    /* LÅTVY: TABS & TEXT */
+    .tab-container {{
+        font-family: 'Roboto Mono', monospace !important;
         white-space: pre !important;
         overflow-x: auto !important;
         color: #000000 !important;
-        background-color: #ffffff;
         font-size: 18px;
         line-height: 1.4;
-        padding-bottom: 80vh; /* Gigantiskt tomrum i botten */
+        padding-top: 10px;
+        padding-bottom: 80vh; /* Möjliggör fri skrollning i botten */
     }}
 
-    /* GRID FÖR STARTSIDA */
-    .song-grid-button {{
-        display: block;
-        width: 100%;
-        padding: 25px 10px;
-        background-color: #f0f2f6;
-        border: 2px solid #000000;
-        color: #000000;
+    /* ARKIV-GRID */
+    .grid-container {{
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }}
+
+    .grid-item {{
+        background-color: #ffffff;
+        border: 3px solid #000000;
+        color: #000000 !important;
         text-align: center;
+        padding: 30px 10px;
         text-decoration: none;
-        font-weight: bold;
-        border-radius: 10px;
-        margin-bottom: 10px;
+        font-weight: 900;
         font-size: 18px;
+        text-transform: uppercase;
+        border-radius: 0px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100px;
+    }}
+
+    .grid-item:active {{
+        background-color: #000000;
+        color: #ffffff !important;
     }}
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. LOGIK & NAVIGATION ---
-params = st.query_params
-selected_song = params.get("song", None)
+# Hämta nuvarande låt från URL
+query_params = st.query_params
+selected_song = query_params.get("song", None)
 
 # --- 4. RENDERERING: HEADER ---
-# Vi injicerar headern som HTML. Native select skickar användaren vidare via URL.
-select_options = "".join([
-    f'<option value="{s}" {"selected" if selected_song == s else ""}>{s}</option>' 
-    for s in song_files
-])
+# Förbered rullistan
+options_html = '<option value="">VALD LÅT...</option>'
+for song in song_list:
+    is_selected = "selected" if selected_song == song else ""
+    options_html += f'<option value="{song}" {is_selected}>{song.upper()}</option>'
+
+# Kolla om loggan finns, annars använd text
+logo_html = '<div class="logo-img">PLAYIT</div>'
+if os.path.exists("logo.png"):
+    logo_html = '<img src="app/static/logo.png" class="logo-img">'
 
 st.markdown(f"""
     <div class="fixed-header">
-        <a href="/" target="_self" class="logo-box">PLAYIT</a>
-        <div class="nav-select-container">
+        <a href="/" target="_self" class="logo-link">
+            {logo_html}
+        </a>
+        <div class="nav-center">
             <select class="native-select" onchange="window.location.href='?song=' + this.value">
-                <option value="" disabled { 'selected' if not selected_song else '' }>Välj låt...</option>
-                {select_options}
+                {options_html}
             </select>
         </div>
-        <a href="/" target="_self" class="exit-link">EXIT</a>
+        <a href="/" target="_self" class="exit-btn">EXIT</a>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 5. HUVUDVYER ---
-if selected_song:
-    # LÅTVY
+# --- 5. RENDERERING: HUVUDVYER ---
+
+if selected_song and is_valid_song(selected_song):
+    # --- LÄS-LÄGE ---
     file_path = LIB_DIR / f"{selected_song}.md"
-    if file_path.exists():
+    try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
         
-        # Rendera markdown i en div med monospace och overflow-skydd
-        st.markdown(f'<div class="tab-area">{content}</div>', unsafe_allow_html=True)
-    else:
-        st.error("Filen saknas.")
-        if st.button("Gå tillbaka"):
-            st.query_params.clear()
-            st.rerun()
+        # Lägg till de 60 tomma raderna i botten
+        content_with_padding = content + ("\n" * 60)
+        
+        st.markdown(f'<div class="tab-container">{content_with_padding}</div>', unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Fel vid inläsning av fil: {e}")
 else:
-    # ARKIVVY (GRID)
-    st.write("### ARKIV")
-    if not song_files:
-        st.info("Lägg till .md-filer i mappen 'library' för att komma igång.")
+    # --- ARKIV-LÄGE (GRID) ---
+    st.markdown("<h1 style='color:black; margin-top:10px;'>ARKIV</h1>", unsafe_allow_html=True)
+    
+    if not song_list:
+        st.info("Inga låtar hittades i mappen /library. Lägg till .md-filer för att börja.")
     else:
-        # Skapa ett 2-kolumns rutnät för stora knappar
-        cols = st.columns(2)
-        for i, song in enumerate(song_files):
-            with cols[i % 2]:
-                # Använder HTML-länkar stylade som knappar för snabbhet och stabilitet
-                st.markdown(f'<a href="?song={song}" target="_self" class="song-grid-button">{song}</a>', unsafe_allow_html=True)
+        grid_html = '<div class="grid-container">'
+        for song in song_list:
+            grid_html += f'<a href="?song={song}" target="_self" class="grid-item">{song}</a>'
+        grid_html += '</div>'
+        st.markdown(grid_html, unsafe_allow_html=True)
 
-# --- 6. CLEANUP ---
-# Döljer Streamlits footer-padding som ibland dyker upp
-st.markdown("<style>div[data-testid='stVerticalBlock'] > div:empty {display:none;}</style>", unsafe_allow_html=True)
+# --- 6. CLEANUP & NAVIGATION SCRIPT ---
+# Script för att säkerställa att vi scrollar till toppen vid ny låt
+st.markdown("""
+    <script>
+    var body = window.parent.document.querySelector(".main");
+    if (body) { body.scrollTop = 0; }
+    </script>
+""", unsafe_allow_html=True)

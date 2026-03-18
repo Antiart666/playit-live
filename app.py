@@ -43,7 +43,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Gränslös design och Sniper-navigering) ---
+# --- CSS (Finslipad Sniper-metod och Tab-optimering) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -59,59 +59,63 @@ st.markdown(f"""
 
     .block-container {{
         padding-top: 0rem !important;
-        max-width: 100% !important; /* Utnyttjar hela bredden */
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        max-width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
     }}
 
-    /* 1. DEN VISUELLA LOGGAN */
-    .nav-logo {{
-        position: fixed !important;
-        top: 20px !important;
-        left: 20px !important;
-        width: 110px !important;
-        z-index: 999998 !important;
-        transform: rotate(-8deg);
-        pointer-events: none;
-    }}
-
-    /* 2. DEN OSYNLIGA HEMKNAPPEN */
-    div[data-testid="stButton"] > button[key="home_trigger"] {{
+    /* LOGGAN SOM ÄR EN KNAPP (INGET ANNAT ELEMENT FINNS) */
+    div[data-testid="stButton"] > button[key="logo_home"] {{
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
-        width: 125px !important;
-        height: 85px !important;
+        width: 105px !important;
+        height: 65px !important;
         z-index: 999999 !important;
-        opacity: 0 !important;
-        background: transparent !important;
+        
+        /* Här bäddar vi in bilden direkt i knappen för perfekt sync */
+        background-image: url("data:image/png;base64,{logo_b64 if logo_b64 else ''}") !important;
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-color: transparent !important;
+        
+        /* Ta bort all knapp-styling så bara bilden syns */
         border: none !important;
         color: transparent !important;
         font-size: 0px !important;
+        box-shadow: none !important;
         transform: rotate(-8deg) !important;
         cursor: pointer !important;
-        box-shadow: none !important;
+        transition: transform 0.1s ease-in-out !important;
+    }}
+    
+    div[data-testid="stButton"] > button[key="logo_home"]:active {{
+        transform: rotate(-8deg) scale(0.9) !important;
     }}
 
     /* STOPPA BOKSTAVSKAOSET */
     .top-wall {{
-        height: 120px;
+        height: 100px;
         display: block;
     }}
 
-    /* LÄSRUTAN (GRÄNSLÖS) */
-    .song-stage-borderless {{
+    /* LÄSRUTAN (GRÄNSLÖS & TABS-OPTIMERAD) */
+    .song-stage-pro {{
         height: 92vh !important; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
         color: #000000 !important;
-        padding: 10px 5px !important; /* Minimal paddning för max bredd */
-        border: none !important; /* Inga kanter! */
+        padding: 5px !important;
+        border: none !important;
+        
+        /* Monospace för perfekta tabs */
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 18px; 
-        line-height: 1.4;
-        white-space: pre-wrap;
+        font-size: 15px !important; /* Minskat från 18px för att undvika "taggighet" */
+        line-height: 1.2 !important; /* Tightare rader för bättre tabs-överblick */
+        white-space: pre !important; /* Förhindrar radbrytning som förstör tabs */
+        overflow-x: auto !important; /* Tillåter scroll i sidled om en tab är extra lång */
     }}
 
     /* ARKIV-KNAPPAR */
@@ -121,6 +125,7 @@ st.markdown(f"""
         border-radius: 18px !important;
         font-weight: 700 !important;
         height: 3.5em !important;
+        width: 100% !important;
     }}
 
     /* VERKTYGSBOX */
@@ -140,14 +145,8 @@ if "song_path" not in st.session_state: st.session_state.song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# RITA LOGGAN
-if logo_b64:
-    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo">', unsafe_allow_html=True)
-else:
-    st.markdown('<div class="nav-logo" style="background:black;color:white;padding:10px;border-radius:10px;">HEM</div>', unsafe_allow_html=True)
-
-# OSYNLIG KNAPP (Exakt ovanpå loggan)
-if st.button(" ", key="home_trigger"):
+# LOGGAN SOM HEMKNAPP (Enda elementet i hörnet)
+if st.button(" ", key="logo_home"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
     st.rerun()
@@ -196,7 +195,6 @@ else:
 
     else:
         # SCEN (Låten)
-        # Sänker rutan precis lagom mycket för loggan
         st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song_path):
@@ -204,14 +202,14 @@ else:
                 content = f.read()
             
             content = transpose_chords(content, st.session_state.transpose)
-            full_text = content + ("\n" * 55)
+            full_text = content + ("\n" * 60)
 
             # Auto-scroll
             if st.session_state.scroll > 0:
                 speed = (11 - st.session_state.scroll) * 45
                 st.markdown(f"""
                     <script>
-                    var box = document.getElementById("song-rutan-clean");
+                    var box = document.getElementById("song-view");
                     if (window.playitScroll) clearInterval(window.playitScroll);
                     window.playitScroll = setInterval(function() {{
                         if (box) box.scrollTop += 1;
@@ -219,7 +217,7 @@ else:
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-rutan-clean" class="song-stage-borderless">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-stage-pro">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

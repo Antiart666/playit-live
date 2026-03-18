@@ -14,12 +14,10 @@ st.set_page_config(
 # --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    """Snyggar till filnamn: EYE_OF_THE_TIGER -> Eye of the tiger"""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Konverterar bilden till ett format som CSS kan läsa direkt."""
     if os.path.exists(path):
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
@@ -41,12 +39,17 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- DESIGN (Modern, Rundad & Logga som knapp) ---
+# --- DESIGN (Bort med Streamlit-header, runda hörn & logga) ---
 logo_base64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+    /* DÖLJ STREAMLIT HEADER OCH FOOTER */
+    header {{visibility: hidden;}}
+    footer {{visibility: hidden;}}
+    #MainMenu {{visibility: hidden;}}
 
     html, body, [class*="css"] {{
         font-family: 'Inter', sans-serif !important;
@@ -54,34 +57,43 @@ st.markdown(f"""
     }}
 
     .block-container {{
-        padding-top: 1rem !important;
-        padding-bottom: 0rem !important;
+        padding-top: 5rem !important; /* Ger plats åt loggan högst upp */
         max-width: 98% !important;
     }}
 
-    /* Logga-knapp styling */
-    .logo-btn-container {{
-        position: absolute;
-        top: 0px;
+    /* Positionera loggan i absoluta överkanten */
+    .logo-wrapper {{
+        position: fixed;
+        top: 10px;
         left: 20px;
-        z-index: 10001;
+        z-index: 10000;
         transform: rotate(-8deg);
-        cursor: pointer;
-        transition: transform 0.2s;
+        pointer-events: none; /* Låter klick gå igenom till knappen under */
     }}
-    .logo-btn-container:hover {{ transform: rotate(-4deg) scale(1.05); }}
     
-    .logo-img {{
-        width: 120px; /* Justera storleken på loggan här */
+    .logo-img-style {{
+        width: 90px; /* Krympt storlek */
         height: auto;
-        border-radius: 15px;
+        border-radius: 12px;
         border: 2px solid #000;
-        background: #000; /* Bakgrund ifall bilden är transparent */
+        box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
     }}
 
-    /* Låtrutan (Stage Mode) */
+    /* Den osynliga men klickbara knappen exakt över loggan */
+    .stButton>button[key="logo_home"] {{
+        position: fixed;
+        top: 10px;
+        left: 20px;
+        width: 100px;
+        height: 60px;
+        z-index: 10001;
+        opacity: 0; /* Helt osynlig men klickbar */
+        cursor: pointer;
+    }}
+
+    /* Låtrutan */
     .song-container {{
-        height: 92vh; 
+        height: 85vh; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff;
@@ -90,38 +102,25 @@ st.markdown(f"""
         border: 3px solid #000000;
         border-radius: 30px; 
         font-family: 'Courier New', Courier, monospace;
-        font-size: 18px; 
+        font-size: 17px; 
         line-height: 1.5;
         white-space: pre-wrap;
     }}
 
-    /* Knappar */
     .stButton>button {{
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
         border-radius: 20px !important;
         font-weight: 700 !important;
-        text-transform: uppercase;
-    }}
-    
-    /* Göm Streamlits standard-knapp för loggan men behåll funktionen */
-    .invisible-logo-button {{
-        position: absolute;
-        top: 0;
-        left: 20px;
-        width: 120px;
-        height: 60px;
-        opacity: 0;
-        z-index: 10002;
     }}
 
     .settings-area {{
-        margin-top: 50px;
-        padding: 30px;
+        margin-top: 40px;
+        padding: 25px;
         background-color: #f9f9f9;
-        border-radius: 30px;
-        border: 2px dashed #ccc;
+        border-radius: 25px;
+        border: 2px dashed #000;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -132,36 +131,32 @@ if "current_path" not in st.session_state: st.session_state.current_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# --- LOGGA-KNAPPEN (HEM-FUNKTION) ---
-# Vi lägger en osynlig Streamlit-knapp ovanpå den snygga loggan
-if st.button("HOME", key="logo_home_click"):
-    st.session_state.view = "list"
-    st.rerun()
-
-# Rita upp den snygga loggan (visuellt)
+# --- LOGGAN SOM HEMKNAPP ---
+# Visuell logga
 if logo_base64:
     st.markdown(f'''
-        <div class="logo-btn-container">
-            <img src="data:image/png;base64,{logo_base64}" class="logo-img">
+        <div class="logo-wrapper">
+            <img src="data:image/png;base64,{logo_base64}" class="logo-img-style">
         </div>
     ''', unsafe_allow_html=True)
 else:
-    # Placeholder om bilden saknas
-    st.markdown('<div class="logo-btn-container"><div style="color:white; background:black; padding:10px; border-radius:10px;">PLAYIT</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="logo-wrapper"><div style="background:black; color:white; padding:10px; border-radius:10px;">HOME</div></div>', unsafe_allow_html=True)
 
-# Gör knappen osynlig men klickbar exakt där loggan är
-st.markdown('<div class="invisible-logo-button"></div>', unsafe_allow_html=True)
+# Osynlig knapp för logga-klick (fungerar nu som riktig Hem-knapp)
+if st.button("", key="logo_home"):
+    st.session_state.view = "list"
+    st.rerun()
 
 songs_dir = "library"
 
 # 3. App-logik
 if not os.path.exists(songs_dir):
-    st.error("Ladda upp 'library'-mappen och 'logo.png' på GitHub!")
+    st.error("Ladda upp 'library'-mappen på GitHub!")
 else:
     if st.session_state.view == "list":
         # --- SIDA 1: ARKIVET ---
         st.title("Arkiv")
-        search = st.text_input("Sök låt...", "")
+        search = st.text_input("SÖK LÅT...", placeholder="Skriv här för att filtrera")
 
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
@@ -171,7 +166,7 @@ else:
             filtered_files = [f for f in valid_files if search.lower() in f.lower() or search.lower() in clean_title(f).lower()]
             
             if filtered_files:
-                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:12px;">{category.upper()}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="font-weight:900; color:#888; margin-top:15px; font-size:12px; letter-spacing:1px;">{category.upper()}</div>', unsafe_allow_html=True)
                 cols = st.columns(2)
                 for i, filename in enumerate(filtered_files):
                     with cols[i % 2]:
@@ -182,24 +177,30 @@ else:
 
         # --- INSTÄLLNINGAR LÄNGST NER ---
         st.markdown('<div class="settings-area">', unsafe_allow_html=True)
-        st.subheader("⚙️ Inställningar")
-        set_col1, set_col2 = st.columns(2)
-        with set_col1:
+        st.subheader("⚙️ Verktyg")
+        c1, c2 = st.columns(2)
+        with c1:
             st.write("**Tonart**")
-            t1, t2 = st.columns(2)
-            if t1.button("-"): st.session_state.transpose -= 1
-            if t2.button("+"): st.session_state.transpose += 1
+            t_col1, t_col2 = st.columns(2)
+            if t_col1.button("-", key="t_minus"): st.session_state.transpose -= 1
+            if t_col2.button("+", key="t_plus"): st.session_state.transpose += 1
             st.write(f"Steg: {st.session_state.transpose}")
-        with set_col2:
+        with c2:
             st.write("**Scroll**")
-            s1, s2 = st.columns(2)
-            if s1.button("Sakta"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
-            if s2.button("Fort"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
+            s_col1, s_col2 = st.columns(2)
+            if s_col1.button("Sakta", key="s_minus"): st.session_state.scroll = max(0, st.session_state.scroll - 1)
+            if s_col2.button("Fort", key="s_plus"): st.session_state.scroll = min(10, st.session_state.scroll + 1)
             st.write(f"Fart: {st.session_state.scroll}")
         st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         # --- SIDA 2: SCENLÄGET ---
+        
+        # Dubbelklick-knapp för att komma tillbaka (visas bara vid dblclick)
+        if st.button("← ARKIV", key="back_btn"):
+            st.session_state.view = "list"
+            st.rerun()
+
         with open(st.session_state.current_path, "r", encoding="utf-8") as f:
             content = f.read()
         
@@ -209,16 +210,14 @@ else:
         # JavaScript för Dubbelklick & Scroll
         st.markdown(f"""
             <script>
-            // Logik för att visa "Tillbaka"-knappen vid dubbelklick
             var buttons = window.parent.document.querySelectorAll('div[data-testid="stButton"]');
-            var backBtn = buttons[0]; // Första knappen i Streamlit-ordningen
+            var backBtn = Array.from(buttons).find(b => b.innerText.includes("ARKIV"));
             if (backBtn) backBtn.style.display = 'none';
 
             window.parent.document.addEventListener('dblclick', function() {{
                 if (backBtn) backBtn.style.display = backBtn.style.display === 'none' ? 'block' : 'none';
             }});
 
-            // Scroll
             var box = window.parent.document.getElementById("song-box");
             if (window.sInterval) clearInterval(window.sInterval);
             if ({st.session_state.scroll} > 0) {{
@@ -227,10 +226,5 @@ else:
             }}
             </script>
         """, unsafe_allow_html=True)
-
-        # Hem-knappen som bara syns vid dubbelklick
-        if st.button("← ARKIV", key="manual_back"):
-            st.session_state.view = "list"
-            st.rerun()
 
         st.markdown(f'<div id="song-box" class="song-container">{display_text}</div>', unsafe_allow_html=True)

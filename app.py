@@ -11,8 +11,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-if "current_song" not in st.session_state:
-    st.session_state.current_song = "VÄLJ LÅT..."
+# State för att hålla koll på vald låt
+if "active_song" not in st.session_state:
+    st.session_state.active_song = "VÄLJ LÅT..."
 
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
@@ -31,135 +32,142 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: FIXED UI & ANTI-KEYBOARD ---
+# --- 2. CSS: ABSOLUTE POSITIONING & NO-KEYBOARD ---
 st.markdown(f"""
     <style>
-    /* Bakgrund & Grund */
+    /* Grundinställningar */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
 
-    /* Dölj Streamlit-menyer */
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
-    /* FIXED NAVBAR */
-    .nav-bar {{
+    /* FIXED HEADER CONTAINER */
+    .header-anchor {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 130px;
+        height: 150px;
         background: #ffffff;
-        border-bottom: 1px solid #eeeeee;
         z-index: 999990;
+        border-bottom: 1px solid #f0f0f0;
     }}
 
-    /* LOGO (+20% STÖRRE) */
-    .logo-box {{
+    /* LOGO (MASSIV + 20% till) */
+    .stage-logo {{
         position: fixed;
-        left: 15px;
-        top: 10px;
-        transform: rotate(-8deg);
-        z-index: 999999;
+        left: 10px;
+        top: 5px;
+        height: 140px; /* Rejäl storlek */
+        width: auto;
+        transform: rotate(-7deg);
+        z-index: 1000005 !important;
     }}
-    .logo-img {{ height: 110px; width: auto; }} /* Ökad från 80px/90px */
-    .logo-fallback {{ 
-        font-weight: 900; font-size: 32px; border: 4px solid #000; 
-        padding: 8px 15px; border-radius: 12px; background: #fff;
+    
+    .logo-fallback {{
+        position: fixed;
+        left: 10px;
+        top: 20px;
+        font-weight: 900;
+        font-size: 40px;
+        border: 5px solid #000;
+        padding: 10px;
+        z-index: 1000005;
+        background: white;
     }}
 
-    /* RULLIST (35% BREDD + TOP-ALIGNED) */
+    /* RULLIST (35% & TOP) */
     div[data-testid="stSelectbox"] {{
         position: fixed !important;
-        top: 15px !important;
+        top: 10px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: 35% !important;
-        z-index: 1000001 !important;
+        z-index: 1000010 !important;
     }}
 
-    /* TANGENTBORDS-DÖDARE (Shield Layer) */
-    /* Vi blockerar alla pek-händelser på det inre textfältet */
+    /* TANGENTBORDS-SPÄRR */
     div[data-baseweb="select"] input {{
         pointer-events: none !important;
-        user-select: none !important;
-        -webkit-user-select: none !important;
-    }}
-    
-    /* EXIT-KNAPP (TOP-RIGHT) */
-    .stButton > button {{
-        position: fixed !important;
-        top: 15px !important;
-        right: 15px !important;
-        background-color: #f8f8f8 !important;
-        color: #000000 !important;
-        border-radius: 15px !important;
-        border: 1px solid #ddd !important;
-        padding: 8px 18px !important;
-        font-weight: 800 !important;
-        z-index: 1000005 !important;
+        caret-color: transparent !important;
     }}
 
-    /* SONG DISPLAY (DIN SPEC) */
-    .song-display {{
-        margin-top: 150px;
+    /* EXIT-KNAPP (HTML-LÄNK ISTÄLLET FÖR ST-BUTTON) */
+    .exit-anchor {{
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f0f0f0;
+        color: #000 !important;
+        padding: 10px 15px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        text-decoration: none !important;
+        border: 1px solid #ddd;
+        z-index: 1000010 !important;
+        text-transform: uppercase;
+    }}
+
+    /* SONG DISPLAY */
+    .song-area {{
+        margin-top: 160px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
         white-space: pre-wrap !important;
-        word-wrap: break-word !important;
-        color: #000000 !important;
+        color: #000 !important;
         padding-bottom: 80vh;
     }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDER UI ---
+# --- 3. RENDERING ---
 
-# Rita Header/Logo
+# Rita den fasta bakgrunden och loggan
 logo_b64 = get_logo_b64()
+st.markdown('<div class="header-anchor"></div>', unsafe_allow_html=True)
+
 if logo_b64:
-    logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">'
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    logo_html = '<div class="logo-fallback">PLAYIT</div>'
+    st.markdown('<div class="logo-fallback">PLAYIT</div>', unsafe_allow_html=True)
 
-st.markdown(f'<div class="nav-bar"><div class="logo-box">{logo_html}</div></div>', unsafe_allow_html=True)
+# Rita EXIT-knappen som en ren HTML-länk (tvingar omladdning till startsidan)
+st.markdown('<a href="/" target="_self" class="exit-anchor">EXIT</a>', unsafe_allow_html=True)
 
-# Ladda låtar
+# Ladda låtarna
 song_map = get_songs()
 options = ["VÄLJ LÅT..."] + list(song_map.keys())
 
-# EXIT-knapp
-if st.button("EXIT"):
-    st.session_state.current_song = "VÄLJ LÅT..."
-    st.rerun()
-
-# Rullista (35% bredd)
+# Rullistan
 selected = st.selectbox(
     "Välj låt",
     options=options,
-    index=options.index(st.session_state.current_song) if st.session_state.current_song in options else 0,
+    index=options.index(st.session_state.active_song) if st.session_state.active_song in options else 0,
     label_visibility="collapsed"
 )
 
-if selected != st.session_state.current_song:
-    st.session_state.current_song = selected
+# Vid val av låt
+if selected != st.session_state.active_song:
+    st.session_state.active_song = selected
     st.rerun()
 
-# --- 4. RENDER CONTENT ---
-if st.session_state.current_song != "VÄLJ LÅT...":
-    file_name = song_map[st.session_state.current_song]
+# --- 4. DISPLAY CONTENT ---
+if st.session_state.active_song != "VÄLJ LÅT...":
+    file_name = song_map[st.session_state.active_song]
     path = LIB_DIR / f"{file_name}.md"
     
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-display">{content}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 else:
     st.empty()
 
-# Scroll-fix till toppen
+# Scroll till toppen
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

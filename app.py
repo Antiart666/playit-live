@@ -19,10 +19,13 @@ def clean_title(filename):
     return name.strip().capitalize()
 
 def get_image_base64(path):
-    """Laddar loggan säkert för inbäddning."""
+    """Laddar loggan säkert. Returnerar None om filen saknas istället för att krascha."""
     if os.path.exists(path):
-        with open(path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
+        try:
+            with open(path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode()
+        except Exception:
+            return None
     return None
 
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -81,29 +84,32 @@ st.markdown(f"""
         height: 65px !important;
         z-index: 99999 !important;
         
-        background-image: url("data:image/png;base64,{logo_b64}") !important;
+        background-image: {f'url("data:image/png;base64,{logo_b64}")' if logo_b64 else 'none'} !important;
         background-size: contain !important;
         background-repeat: no-repeat !important;
         background-position: center !important;
-        background-color: transparent !important;
+        background-color: { 'transparent' if logo_b64 else '#000' } !important;
         
         border: none !important;
-        color: transparent !important;
+        color: { 'transparent' if logo_b64 else '#fff' } !important;
         box-shadow: none !important;
         cursor: pointer !important;
         
-        /* Lägg till svävande animation */
         animation: floating 3s ease-in-out infinite !important;
         transition: transform 0.1s ease-in-out !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        border-radius: 12px;
     }}
     
-    /* REAKTION VID KLICK (Krymper tillfälligt) */
     div[data-testid="stButton"] > button[key="logo_home_btn"]:active {{
         transform: rotate(-8deg) scale(0.9) !important;
-        animation: none !important; /* Stoppar svävandet vid tryck */
+        animation: none !important;
     }}
 
-    /* MELLANRUM FÖR ATT UNDVIKA KAOS HÖGST UPP */
+    /* MELLANRUM HÖGST UPP */
     .app-top-spacer {{
         height: 90px;
         width: 100%;
@@ -126,7 +132,7 @@ st.markdown(f"""
         white-space: pre-wrap;
     }}
 
-    /* KNAPPAR I LISTAN */
+    /* ARKIV-KNAPPAR */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -154,8 +160,10 @@ if "current_song_path" not in st.session_state: st.session_state.current_song_pa
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
 
-# --- LOGGAN (DEN ENDA HEMKNAPPEN) ---
-if st.button(" ", key="logo_home_btn"):
+# --- LOGGAN (HEMKNAPPEN) ---
+# Om bilden saknas står det "HEM" på den svarta knappen istället
+logo_label = " " if logo_b64 else "HEM"
+if st.button(logo_label, key="logo_home_btn"):
     st.session_state.view = "list"
     st.rerun()
 
@@ -165,16 +173,18 @@ songs_dir = "library"
 
 # 3. Huvudlogik
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas på GitHub.")
+    st.error(f"⚠️ Mappen '{songs_dir}' saknas! Skapa en mapp som heter library och lägg dina .md-filer där.")
 else:
     if st.session_state.view == "list":
         # --- SIDA 1: LÅTLISTAN ---
+        found_any = False
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
             if category == "library": category = "Mina Låtar"
             
             valid_songs = sorted([f for f in files if f.endswith(".md")])
             if valid_songs:
+                found_any = True
                 st.markdown(f'<div style="font-weight:900; color:#888; margin-top:20px; font-size:11px; text-transform:uppercase; letter-spacing:1px;">{category}</div>', unsafe_allow_html=True)
                 cols = st.columns(2)
                 for idx, song_file in enumerate(valid_songs):
@@ -183,6 +193,9 @@ else:
                             st.session_state.current_song_path = os.path.join(root, song_file)
                             st.session_state.view = "song"
                             st.rerun()
+        
+        if not found_any:
+            st.info("Inga .md-filer hittades i mappen 'library'.")
 
         # --- VERKTYG LÄNGST NER ---
         st.markdown('<div class="bottom-tools">', unsafe_allow_html=True)
@@ -204,21 +217,27 @@ else:
 
     else:
         # --- SIDA 2: SCENLÄGET (Låten) ---
-        with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
-            raw_content = f.read()
-        
-        song_content = transpose_chords(raw_content, st.session_state.transpose)
-        scrolling_text = song_content + ("\n" * 55)
+        if os.path.exists(st.session_state.current_song_path):
+            with open(st.session_state.current_song_path, "r", encoding="utf-8") as f:
+                raw_content = f.read()
+            
+            song_content = transpose_chords(raw_content, st.session_state.transpose)
+            scrolling_text = song_content + ("\n" * 55)
 
-        st.markdown(f"""
-            <script>
-            var box = window.parent.document.getElementById("song-view-box");
-            if (window.playitScroll) clearInterval(window.playitScroll);
-            if ({st.session_state.scroll_speed} > 0) {{
-                var speed = (11 - {st.session_state.scroll_speed}) * 40;
-                window.playitScroll = setInterval(function() {{ if (box) box.scrollTop += 1; }}, delay);
-            }}
-            </script>
-        """, unsafe_allow_html=True)
+            st.markdown(f"""
+                <script>
+                var box = window.parent.document.getElementById("song-view-box");
+                if (window.playitScroll) clearInterval(window.playitScroll);
+                if ({st.session_state.scroll_speed} > 0) {{
+                    var speed = (11 - {st.session_state.scroll_speed}) * 40;
+                    window.playitScroll = setInterval(function() {{ if (box) box.scrollTop += 1; }}, speed);
+                }}
+                </script>
+            """, unsafe_allow_html=True)
 
-        st.markdown(f'<div id="song-view-box" class="song-display-area">{scrolling_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view-box" class="song-display-area">{scrolling_text}</div>', unsafe_allow_html=True)
+        else:
+            st.error("Kunde inte hitta låtfilen. Gå tillbaka till arkivet.")
+            if st.button("Tillbaka"):
+                st.session_state.view = "list"
+                st.rerun()

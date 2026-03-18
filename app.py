@@ -3,7 +3,7 @@ import os
 import re
 import base64
 
-# 1. Konfiguration - Total kontroll över layouten
+# 1. Konfiguration
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -41,7 +41,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Den definitiva versionen) ---
+# --- CSS (Den kompromisslösa versionen) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -52,7 +52,7 @@ st.markdown(f"""
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* FIXA TEXTEN */
+    /* GLOBAL TEXT */
     * {{ color: #000000 !important; font-family: 'Inter', sans-serif !important; }}
 
     .block-container {{
@@ -60,56 +60,58 @@ st.markdown(f"""
         max-width: 98% !important;
     }}
 
-    /* LOGGAN / HEMKNAPPEN (Enda elementet i hörnet) */
+    /* LOGGAN / HEMKNAPPEN (Dödar all spilltext) */
     div[data-testid="stButton"] > button[key="logo_home"] {{
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
         width: 120px !important; 
-        height: 75px !important;
+        height: 80px !important;
         z-index: 1000000 !important;
         
-        /* Bildinbäddning */
+        /* Bilden */
         background-image: url("data:image/png;base64,{logo_b64 if logo_b64 else ''}") !important;
         background-size: contain !important;
         background-repeat: no-repeat !important;
         background-position: center !important;
         background-color: transparent !important;
         
-        /* Radera knappens utseende helt */
+        /* Dölj ALL text och ikoner inuti knappen */
         border: none !important;
-        color: { 'transparent' if logo_b64 else '#000' } !important;
-        font-size: { '0px' if logo_b64 else '14px' } !important;
-        font-weight: 900 !important;
         box-shadow: none !important;
+        color: transparent !important;
+        font-size: 0px !important;
+        line-height: 0 !important;
         transform: rotate(-8deg) !important;
         cursor: pointer !important;
-        transition: transform 0.1s ease-in-out !important;
     }}
     
+    /* Targetar p-taggen inuti knappen som Streamlit ofta använder */
+    div[data-testid="stButton"] > button[key="logo_home"] p {{
+        display: none !important;
+    }}
+
     div[data-testid="stButton"] > button[key="logo_home"]:active {{
         transform: rotate(-8deg) scale(0.9) !important;
     }}
 
     /* STOPPA BOKSTAVSKAOSET */
-    .spacer {{ 
-        height: 110px; 
-        display: block; 
-    }}
+    .spacer {{ height: 115px; display: block; }}
 
-    /* LÄSRUTAN (MAXAD TILL 92%) */
-    .song-stage-pro {{
+    /* LÄSRUTAN (MAXAD) */
+    .song-stage-final {{
         height: 92vh !important; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
-        border: 3px solid #000000;
-        border-radius: 30px; 
-        padding: 20px;
+        border: 4px solid #000000;
+        border-radius: 35px; 
+        padding: 25px;
         font-family: 'Courier New', Courier, monospace !important;
         font-size: 18px; 
         line-height: 1.4;
         white-space: pre-wrap;
+        margin-top: 10px;
     }}
 
     /* ARKIV-KNAPPAR */
@@ -121,8 +123,8 @@ st.markdown(f"""
         height: 3.5em !important;
     }}
 
-    /* VERKTYGSPANEL */
-    .tools-box {{
+    /* VERKTYGSBOX */
+    .tools-tray {{
         margin-top: 40px;
         padding: 25px;
         background-color: #f9f9f9;
@@ -133,14 +135,14 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 # --- 2. LOGIK ---
-if "page" not in st.session_state: st.session_state.page = "list"
+if "view" not in st.session_state: st.session_state.view = "list"
 if "song" not in st.session_state: st.session_state.song = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# LOGGAN (Hemknappen) - Labeln är "HEM" men döljs av bilden i CSS
-if st.button("HEM", key="logo_home"):
-    st.session_state.page = "list"
+# DEN ENDA KNAPPEN (Loggan)
+if st.button(" ", key="logo_home"):
+    st.session_state.view = "list"
     st.session_state.song = ""
     st.rerun()
 
@@ -151,13 +153,13 @@ songs_dir = "library"
 if not os.path.exists(songs_dir):
     st.error("Mappen 'library' saknas.")
 else:
-    if st.session_state.page == "list":
+    if st.session_state.view == "list":
         # ARKIV
         st.markdown('<div class="spacer"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
-            if category == "library": category = "Låtar"
+            if category == "library": category = "Mina Låtar"
             
             valid_files = sorted([f for f in files if f.endswith(".md")])
             if valid_files:
@@ -167,12 +169,12 @@ else:
                     with cols[i % 2]:
                         if st.button(clean_title(f), key=os.path.join(root, f)):
                             st.session_state.song = os.path.join(root, f)
-                            st.session_state.page = "song"
+                            st.session_state.view = "song"
                             st.rerun()
 
         # VERKTYG
-        st.markdown('<div class="tools-box">', unsafe_allow_html=True)
-        st.subheader("Inställningar")
+        st.markdown('<div class="tools-tray">', unsafe_allow_html=True)
+        st.subheader("⚙️ Inställningar")
         c1, c2 = st.columns(2)
         with c1:
             st.write("Tonart")
@@ -188,6 +190,7 @@ else:
 
     else:
         # SCEN (Låten)
+        # Sänker rutan lite så loggan inte krockar med texten
         st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song):
@@ -195,9 +198,9 @@ else:
                 content = f.read()
             
             content = transpose_chords(content, st.session_state.transpose)
-            full_text = content + ("\n" * 50)
+            full_text = content + ("\n" * 55)
 
-            # Scroll
+            # Auto-scroll
             if st.session_state.scroll > 0:
                 speed = (11 - st.session_state.scroll) * 45
                 st.markdown(f"""
@@ -210,4 +213,4 @@ else:
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-stage-pro">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-stage-final">{full_text}</div>', unsafe_allow_html=True)

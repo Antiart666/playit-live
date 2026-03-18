@@ -33,15 +33,14 @@ def get_all_songs(directory):
                     song_list.append({"title": clean_title(f), "path": f})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (HARDCORE CLEANUP) ---
+# --- CSS (STRIP-DOWN & FORCE LIGHT) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
-    /* DÖLJ ALLT FRÅN STREAMLIT */
+    /* Dölj Streamlits standard-UI helt */
     header, footer, #MainMenu, [data-testid="stHeader"] {{ 
         display: none !important; 
-        visibility: hidden !important; 
     }}
     
     .stApp {{ background-color: #ffffff !important; }}
@@ -51,45 +50,47 @@ st.markdown(f"""
         max-width: 100% !important;
     }}
 
-    /* DEN RIKTIGA HEADERN */
-    .custom-header {{
+    /* FIXED TOP NAV */
+    .nav-bar {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 60px;
+        height: 65px;
         background: white;
         z-index: 999999;
         display: flex;
         align-items: center;
         padding: 0 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #ddd;
     }}
 
-    /* LOGGAN SOM LÄNK */
-    .logo-link {{
-        width: 80px;
+    /* LOGGA SOM HEMKNAPP */
+    .logo-anchor {{
+        display: block;
+        width: 85px;
         transform: rotate(-8deg);
         cursor: pointer;
         margin-right: 15px;
+        -webkit-tap-highlight-color: transparent;
     }}
 
-    /* HTML-DROPDOWN (INGET TANGENTBORD, LJUS FÄRG) */
-    .html-select {{
-        background-color: #f0f0f0 !important;
+    /* NATIV DROPDOWN (Ingen keyboard-trig, ljus färg) */
+    .native-select {{
+        background-color: #eeeeee !important;
         color: #000000 !important;
-        border: 1px solid #ccc !important;
-        border-radius: 6px;
-        padding: 6px 10px;
+        border: 1px solid #cccccc !important;
+        border-radius: 8px;
+        padding: 8px 12px;
         font-size: 16px;
-        width: 180px;
+        width: 200px;
         outline: none;
-        -webkit-appearance: none; /* Viktigt för iPhone/Android */
+        font-family: sans-serif;
     }}
 
-    /* LÄSRUTAN */
-    .song-viewer {{
-        margin-top: 70px;
+    /* LÄSRUTA */
+    .song-viewer-final {{
+        margin-top: 75px;
         padding: 15px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 14px !important;
@@ -100,62 +101,75 @@ st.markdown(f"""
         background-color: #ffffff !important;
     }}
 
-    /* ARKIVVYN */
-    .archive-grid {{
+    /* ARKIV-LAYOUT */
+    .grid-container {{
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        padding: 80px 10px 20px 10px;
+        gap: 12px;
+        padding: 85px 15px 30px 15px;
     }}
-    .song-card {{
-        background: #f8f8f8;
-        border: 1px solid #eee;
-        padding: 20px;
-        border-radius: 10px;
+    .song-link {{
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        padding: 20px 10px;
+        border-radius: 12px;
         text-align: center;
         text-decoration: none;
-        color: black;
-        font-weight: bold;
+        color: black !important;
+        font-weight: 900;
+        font-family: 'Inter', sans-serif;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOGIK ---
+# --- LOGIK OCH NAVIGATION ---
 songs_dir = "library"
 all_songs = get_all_songs(songs_dir)
 
-# Hantera val via URL-parameter (för att slippa Streamlit-widgets i toppen)
+# Vi använder query_params för att styra appen helt
 params = st.query_params
-current_song = params.get("song", "")
+current_song_file = params.get("s", "")
 
-# --- RENDERA HEADERN (REN HTML) ---
-options = "".join([f'<option value="{s["path"]}" {"selected" if s["path"] == current_song else ""}>{s["title"]}</option>' for s in all_songs])
+# --- RENDERA HEADERN ---
+# Skapa options för rullistan
+options_html = '<option value="" disabled {}>Välj låt...</option>'.format('selected' if not current_song_file else '')
+for s in all_songs:
+    is_selected = 'selected' if s["path"] == current_song_file else ''
+    options_html += f'<option value="{s["path"]}" {is_selected}>{s["title"]}</option>'
 
-header_code = f"""
-<div class="custom-header">
-    <a href="/?song=" target="_self">
-        <img src="data:image/png;base64,{logo_b64 if logo_b64 else ''}" class="logo-link">
+# Renderar hela nav-raden i ett svep
+st.markdown(f"""
+<div class="nav-bar">
+    <a href="/" target="_self" class="logo-anchor">
+        <img src="data:image/png;base64,{logo_b64 if logo_b64 else ''}" style="width:100%;">
     </a>
-    <select class="html-select" onchange="window.location.href='/?song=' + this.value">
-        <option value="" { 'selected' if not current_song else '' }>Välj låt...</option>
-        {options}
+    <select class="native-select" onchange="window.location.href='/?s=' + this.value">
+        {options_html}
     </select>
 </div>
-"""
-st.markdown(header_code, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- INNEHÅLL ---
-if not current_song:
-    # Visa Arkivet
-    st.markdown('<div class="archive-grid">', unsafe_allow_html=True)
-    for song in all_songs:
-        link = f"/?song={song['path']}"
-        st.markdown(f'<a href="{link}" target="_self" class="song-card">{song["title"]}</a>', unsafe_allow_html=True)
+# --- RENDERA INNEHÅLL ---
+if not current_song_file:
+    # --- VY: ARKIV ---
+    st.markdown('<div class="grid-container">', unsafe_allow_html=True)
+    if all_songs:
+        for song in all_songs:
+            # Vi skapar en ren länk som laddar om sidan med parametern 's'
+            st.markdown(f'<a href="/?s={song["path"]}" target="_self" class="song-link">{song["title"]}</a>', unsafe_allow_html=True)
+    else:
+        st.write("Inga filer hittades i mappen 'library'.")
     st.markdown('</div>', unsafe_allow_html=True)
 else:
-    # Visa Låten
-    song_full_path = os.path.join(songs_dir, current_song)
-    if os.path.exists(song_full_path):
-        with open(song_full_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        st.markdown(f'<div class="song-viewer">{content + ("\n"*60)}</div>', unsafe_allow_html=True)
+    # --- VY: LÅT ---
+    full_path = os.path.join(songs_dir, current_song_file)
+    if os.path.exists(full_path):
+        try:
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Lägger till extra rader i botten för att kunna scrolla förbi rullistan
+            st.markdown(f'<div class="song-viewer-final">{content + ("\n" * 50)}</div>', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Kunde inte läsa filen: {e}")
+    else:
+        st.error("Låten hittades inte.")

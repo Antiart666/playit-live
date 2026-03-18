@@ -33,14 +33,14 @@ def get_all_songs(directory):
                     song_list.append({"title": clean_title(f), "path": os.path.join(root, f)})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (DEN ULTIMATA FIXEN FÖR FÄRG & TANGENTBORD) ---
+# --- CSS (ATOMKRAFT 4.0 - NO KEYBOARD, LIGHT THEME) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono&display=swap');
 
-    /* DÖLJ ALLT STANDARD */
+    /* STÄDA BORT ALLT STANDARD */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
@@ -54,9 +54,9 @@ st.markdown(f"""
     /* LOGGAN (UPPE TILL VÄNSTER) */
     .fixed-logo {{
         position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
-        width: 85px !important;
+        top: 8px !important;
+        left: 8px !important;
+        width: 80px !important;
         z-index: 1000005 !important;
         transform: rotate(-8deg) !important;
         cursor: pointer !important;
@@ -65,9 +65,9 @@ st.markdown(f"""
     /* OSYNLIG HEM-TRIGGER */
     .home-trigger button {{
         position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
-        width: 85px !important;
+        top: 8px !important;
+        left: 8px !important;
+        width: 80px !important;
         height: 50px !important;
         opacity: 0 !important;
         z-index: 1000006 !important;
@@ -76,35 +76,33 @@ st.markdown(f"""
     /* RULLLISTAN (BREVID LOGGAN) */
     div[data-testid="stSelectbox"] {{
         position: fixed !important;
-        top: 15px !important;
-        left: 105px !important; 
+        top: 12px !important;
+        left: 100px !important; 
         width: 220px !important;
         z-index: 1000005 !important;
     }}
 
-    /* TVINGA LJUS FÄRG PÅ ALLT I SELECTBOX */
+    /* TVINGA LJUS FÄRG & DÖDA TANGENTBORDET */
     div[data-testid="stSelectbox"] > div {{
-        background-color: #f0f2f6 !important; /* Mycket ljus grå/blå ton */
-        border: 1px solid #cccccc !important;
-        border-radius: 10px !important;
+        background-color: #f0f2f6 !important; /* Ljusgrå bakgrund */
+        border: 1px solid #ddd !important;
+        border-radius: 8px !important;
+    }}
+
+    /* Detta block tvingar texten att vara svart även om temat är mörkt */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {{
         color: #000000 !important;
     }}
 
-    /* DÖDA TANGENTBORDET - Gör input-fältet oklickbart men behåll containern klickbar */
+    /* TANGENTBORDS-STOPP: Gör input-fältet osynligt för klick */
     div[data-testid="stSelectbox"] input {{
         pointer-events: none !important;
-        user-select: none !important;
         caret-color: transparent !important;
     }}
 
-    /* Fixa textfärgen inuti rullistan så den inte blir vit på vit */
-    div[data-testid="stSelectbox"] * {{
-        color: #000000 !important;
-    }}
-
-    /* LÄSRUTAN (TABS-SÄKER) */
-    .song-reader-final-boss {{
-        margin-top: 85px;
+    /* LÄSRUTAN (SPIKRAKA TABS) */
+    .song-reader-pro {{
+        margin-top: 80px;
         height: 88vh !important;
         width: 100%;
         overflow-y: auto;
@@ -117,14 +115,6 @@ st.markdown(f"""
         padding-bottom: 120px;
         background-color: #ffffff !important;
     }}
-
-    /* ARKIV-KNAPPAR */
-    div[data-testid="stButton"] > button {{
-        background-color: #ffffff !important;
-        border: 1px solid #eee !important;
-        border-radius: 8px !important;
-        width: 100% !important;
-    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -135,7 +125,7 @@ all_songs = get_all_songs(songs_dir)
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# 1. Hem-trigger (Loggan)
+# 1. Logga som Hemknapp
 st.markdown('<div class="home-trigger">', unsafe_allow_html=True)
 if st.button(" ", key="hidden_home"):
     st.session_state.view = "list"
@@ -143,11 +133,10 @@ if st.button(" ", key="hidden_home"):
     st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# 2. Logga
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="fixed-logo">', unsafe_allow_html=True)
 
-# 3. Rulllista
+# 2. Rullista
 song_titles = [s["title"] for s in all_songs]
 try:
     current_idx = next(i for i, s in enumerate(all_songs) if s["path"] == st.session_state.song_path)
@@ -165,8 +154,8 @@ if all_songs:
 
 # --- INNEHÅLL ---
 if st.session_state.view == "list":
-    st.markdown('<div style="height:100px;"></div>', unsafe_allow_html=True)
-    st.subheader("Mina Låtar")
+    st.markdown('<div style="height:90px;"></div>', unsafe_allow_html=True)
+    st.subheader("Arkiv")
     cols = st.columns(2)
     for i, song in enumerate(all_songs):
         with cols[i % 2]:
@@ -178,4 +167,4 @@ else:
     if os.path.exists(st.session_state.song_path):
         with open(st.session_state.song_path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-reader-final-boss">{content + ("\n"*60)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-reader-pro">{content + ("\n"*60)}</div>', unsafe_allow_html=True)

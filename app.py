@@ -32,135 +32,165 @@ def get_all_songs():
 if "active_song" not in st.session_state:
     st.session_state.active_song = None
 
-# --- CSS (DEN OPTIMERADE COMMAND-CENTRALEN) ---
+# --- CSS (DEN OSYNLIGA HEADERN & STABILA TABS) ---
 logo_data = get_image_base64("logo.png")
 
 st.markdown(f"""
 <style>
-    /* Dölj Streamlit standard-element */
-    [data-testid="stHeader"], header, footer, #MainMenu {{ display: none !important; }}
+    /* GÖR STREAMLITS HEADER GENOMSKINLIG MEN KVAR */
+    [data-testid="stHeader"] {{
+        background-color: rgba(0,0,0,0) !important;
+        border-bottom: none !important;
+        height: 70px !important;
+    }}
+    
+    /* Dölj standard-menyer */
+    footer, #MainMenu {{ display: none !important; }}
+    
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* Behållaren för hela sidan */
+    /* Behållaren för innehåll */
     .block-container {{
-        padding-top: 20px !important;
+        padding-top: 80px !important;
         max-width: 100% !important;
     }}
 
-    /* LOGGAN - Fast position men med marginal */
+    /* LOGGAN */
     .fixed-logo {{
         position: fixed;
-        top: 25px;
+        top: 15px;
         left: 15px;
-        width: 85px;
+        width: 75px;
         transform: rotate(-8deg);
         z-index: 1000001;
-        cursor: pointer;
     }}
 
-    /* RULLLISTA - Mörk och Keyboard-safe */
+    /* NAVIGATIONSRADEN (I HEADERN) */
+    .nav-container {{
+        position: fixed;
+        top: 15px;
+        left: 105px;
+        right: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000002;
+    }}
+
+    /* MÖRK RULLLISTA */
     div[data-testid="stSelectbox"] {{
-        position: fixed !important;
-        top: 25px !important;
-        left: 115px !important;
-        width: 200px !important;
-        z-index: 1000000 !important;
+        flex-grow: 1 !important;
+        min-width: 150px !important;
+        margin-bottom: 0 !important;
     }}
 
-    /* Stylar själva boxen till mörkgrå/svart */
     div[data-testid="stSelectbox"] > div {{
         background-color: #1a1a1a !important;
         color: white !important;
-        border: 2px solid #333 !important;
+        border: 1px solid #333 !important;
         border-radius: 8px !important;
     }}
 
-    /* Tvingar all text i rullistan till vit */
-    div[data-testid="stSelectbox"] * {{
-        color: white !important;
-    }}
+    div[data-testid="stSelectbox"] * {{ color: white !important; }}
 
-    /* STOPPAR TANGENTBORDET */
+    /* STOPPA TANGENTBORDET */
     div[data-testid="stSelectbox"] input {{
         pointer-events: none !important;
         caret-color: transparent !important;
     }}
 
-    /* LÄSYTA */
-    .lyrics-view {{
-        margin-top: 100px;
-        padding: 15px;
-        font-family: 'Roboto Mono', monospace !important;
-        font-size: 15px !important;
-        line-height: 1.25 !important;
-        white-space: pre !important; 
-        color: #000;
+    /* TILLBAKA-KNAPP */
+    .back-btn button {{
+        background-color: #1a1a1a !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+        border-radius: 8px !important;
+        height: 45px !important;
+        font-weight: bold !important;
     }}
 
-    /* STORA LIST-KNAPPAR */
-    .stButton > button {{
+    /* LÅT-TEXT (SÄKER FÖR TABS & SKROLL) */
+    .song-content {{
+        font-family: 'Roboto Mono', monospace !important;
+        font-size: 14px !important;
+        line-height: 1.2 !important;
+        white-space: pre !important; 
+        overflow-x: auto !important; /* Gör att långa rader kan skrollas */
+        color: #000;
+        background-color: #ffffff;
+        padding: 10px;
+        border-radius: 5px;
+        width: 100%;
+    }}
+
+    /* ARKIV-KNAPPAR */
+    .archive-grid .stButton > button {{
         width: 100% !important;
-        height: 55px !important;
-        background-color: #f9f9f9 !important;
-        border: 1px solid #ddd !important;
+        height: 50px !important;
+        background-color: #f0f2f6 !important;
+        border: none !important;
         color: #000 !important;
-        font-weight: bold !important;
         border-radius: 10px !important;
-        margin-bottom: 5px !important;
     }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- NAVIGATION & LOGGA ---
+# --- NAVIGATION ---
 songs = get_all_songs()
 song_titles = [s["title"] for s in songs]
 
-# Loggan (Hemknapp)
+# Logga
 if logo_data:
     st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="fixed-logo">', unsafe_allow_html=True)
 
-# Osynlig hem-trigger ovanpå loggan
-if st.button(" ", key="home_trigger", help="Hem"):
-    st.session_state.active_song = None
-    st.rerun()
+# Övre Nav-rad
+col_select, col_back = st.columns([4, 1])
 
-# --- RULLLISTAN ---
-# Vi lägger till en tom sträng först för att inte välja något direkt
-current_idx = 0
-if st.session_state.active_song:
-    try:
-        current_idx = song_titles.index(st.session_state.active_song["title"]) + 1
-    except: current_idx = 0
+with col_select:
+    current_idx = 0
+    if st.session_state.active_song:
+        try:
+            current_idx = song_titles.index(st.session_state.active_song["title"]) + 1
+        except: current_idx = 0
+    
+    selected_nav = st.selectbox(
+        "",
+        options=["Välj låt..."] + song_titles,
+        index=current_idx,
+        label_visibility="collapsed",
+        key="top_nav_select"
+    )
 
-selected_nav = st.selectbox(
-    "",
-    options=["Välj låt..."] + song_titles,
-    index=current_idx,
-    label_visibility="collapsed"
-)
+with col_back:
+    st.markdown('<div class="back-btn">', unsafe_allow_html=True)
+    if st.button("EXIT", key="exit_btn"):
+        st.session_state.active_song = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Om användaren väljer i rullistan
+# Logik för val
 if selected_nav != "Välj låt...":
     new_song = next(s for s in songs if s["title"] == selected_nav)
     if st.session_state.active_song != new_song:
         st.session_state.active_song = new_song
         st.rerun()
 
-# --- RENDERING AV INNEHÅLL ---
+# --- INNEHÅLL ---
 if st.session_state.active_song:
-    # VISA LÅTEN
     path = st.session_state.active_song["path"]
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="lyrics-view">{content}{chr(10)*60}</div>', unsafe_allow_html=True)
+        # Vi använder en <pre> tagg inuti div för maximal tab-stabilitet
+        st.markdown(f'<pre class="song-content">{content}{chr(10)*50}</pre>', unsafe_allow_html=True)
 else:
-    # VISA LISTAN (ARKIVET)
-    st.markdown('<div style="height:90px;"></div>', unsafe_allow_html=True)
-    st.subheader("Låtarkiv")
+    # Startsidan/Arkivet
+    st.subheader("Låtlista")
+    st.markdown('<div class="archive-grid">', unsafe_allow_html=True)
     cols = st.columns(2)
     for i, song in enumerate(songs):
         with cols[i % 2]:
-            if st.button(song["title"], key=f"btn_{i}"):
+            if st.button(song["title"], key=f"list_btn_{i}"):
                 st.session_state.active_song = song
                 st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)

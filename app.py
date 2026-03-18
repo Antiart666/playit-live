@@ -3,7 +3,7 @@ import os
 import re
 import base64
 
-# 1. Konfiguration
+# 1. Konfiguration - Maximerad yta från start
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -14,10 +14,12 @@ st.set_page_config(
 # --- FUNKTIONER ---
 
 def clean_title(filename):
+    """Gör filnamn snygga för listan."""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
 def get_image_base64(path):
+    """Laddar loggan säkert."""
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
@@ -41,7 +43,7 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Eliminerar spökkanter och fixar tabs) ---
+# --- CSS (Ghost & Overlay Metoden) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -62,64 +64,54 @@ st.markdown(f"""
         padding-right: 0.5rem !important;
     }}
 
-    /* DEN ULTIMATA LOGGA-KNAPPEN (Inga kanter, bara bild) */
-    div[data-testid="stButton"] > button[key="home_logo_btn"] {{
+    /* 1. LOGGAN (DEN SOM SYNS) */
+    .logo-overlay {{
         position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        width: 120px !important;
-        height: 70px !important;
+        top: 20px !important;
+        left: 20px !important;
+        width: 110px !important; /* Din önskade storlek */
+        height: auto !important;
+        z-index: 999998 !important;
+        pointer-events: none !important; /* GÖR ATT KLICK GÅR IGENOM BILDEN */
+    }}
+
+    /* 2. SPÖKKNAPPEN (DEN SOM FUNGERAR) */
+    div[data-testid="stButton"] > button[key="ghost_home_btn"] {{
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 130px !important;
+        height: 85px !important;
         z-index: 999999 !important;
-        
-        /* Bakgrundsbilden */
-        background-image: url("data:image/png;base64,{logo_b64 if logo_b64 else ''}") !important;
-        background-size: contain !important;
-        background-repeat: no-repeat !important;
-        background-position: center !important;
-        background-color: transparent !important;
-        
-        /* RADERA ALLA KANTER OCH EFFEKTER */
+        opacity: 0 !important; /* HELT OSYNLIG */
         border: none !important;
-        outline: none !important;
+        background: transparent !important;
         box-shadow: none !important;
-        color: transparent !important;
-        font-size: 0px !important;
         cursor: pointer !important;
-        transition: transform 0.1s ease-in-out !important;
     }}
 
-    /* SÄKERSTÄLL ATT INGA KANTER DYKER UPP VID KLICK/HOVER */
-    div[data-testid="stButton"] > button[key="home_logo_btn"]:hover,
-    div[data-testid="stButton"] > button[key="home_logo_btn"]:active,
-    div[data-testid="stButton"] > button[key="home_logo_btn"]:focus {{
-        background-color: transparent !important;
-        border: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        color: transparent !important;
-        transform: scale(0.95) !important;
-    }}
-
-    /* STOPPA KAOS HÖGST UPP I ARKIVET */
-    .archive-spacer {{
-        height: 100px;
+    /* SKYDDSVÄGG MOT BOKSTAVSKAOS */
+    .top-barrier {{
+        height: 110px;
         display: block;
     }}
 
     /* LÄSRUTAN (GRÄNSLÖS & TABS-VÄNLIG) */
-    .song-content-area {{
+    .song-display-area {{
         height: 92vh !important; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
-        padding: 10px !important;
-        border: none !important; /* Inga kanter här som begärt */
+        color: #000000 !important;
+        padding: 5px !important;
+        border: none !important; /* INGA KANTER SOM BEGÄRT */
         
         /* Courier för monospaced tabs */
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 14px !important; 
+        font-size: 14px !important; /* Mindre text för att motverka taggighet */
         line-height: 1.2 !important;
-        white-space: pre !important; /* Viktigt för att tabs inte ska brytas */
+        white-space: pre !important; /* Viktigt: Behåller tabs raka */
+        overflow-x: auto !important;
     }}
 
     /* ARKIV-KNAPPAR */
@@ -129,6 +121,7 @@ st.markdown(f"""
         border-radius: 15px !important;
         font-weight: 700 !important;
         height: 3.5em !important;
+        width: 100% !important;
     }}
 
     /* VERKTYGSBOX */
@@ -148,8 +141,15 @@ if "song_path" not in st.session_state: st.session_state.song_path = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# LOGGAN (Som nu är en ren knapp utan kanter)
-if st.button(" ", key="home_logo_btn"):
+# RITA LOGGAN (Bild-lagret)
+if logo_b64:
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="logo-overlay">', unsafe_allow_html=True)
+else:
+    # Om bilden saknas, visa en nödlösning så du kan navigera
+    st.markdown('<div class="logo-overlay" style="color:red; font-weight:900;">LOGGA SAKNAS</div>', unsafe_allow_html=True)
+
+# RITA SPÖKKNAPPEN (Funktions-lagret)
+if st.button(" ", key="ghost_home_btn"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
     st.rerun()
@@ -162,12 +162,12 @@ if not os.path.exists(songs_dir):
     st.error("Mappen 'library' hittades inte.")
 else:
     if st.session_state.view == "list":
-        # ARKIVVYN
-        st.markdown('<div class="archive-spacer"></div>', unsafe_allow_html=True)
+        # ARKIV
+        st.markdown('<div class="top-barrier"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
-            if category == "library": category = "Alla Låtar"
+            if category == "library": category = "Mina Låtar"
             
             valid_files = sorted([f for f in files if f.endswith(".md")])
             if valid_files:
@@ -197,8 +197,8 @@ else:
         st.markdown('</div>', unsafe_allow_html=True)
 
     else:
-        # SCENVYN (Låten)
-        st.markdown('<div style="height:75px;"></div>', unsafe_allow_html=True)
+        # SCEN (Låten)
+        st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
         
         if os.path.exists(st.session_state.song_path):
             with open(st.session_state.song_path, "r", encoding="utf-8") as f:
@@ -220,7 +220,7 @@ else:
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-content-area">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-display-area">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

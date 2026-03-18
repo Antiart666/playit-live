@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import base64
-import urllib.parse
 
 # 1. Konfiguration
 st.set_page_config(
@@ -34,131 +33,152 @@ def get_all_songs(directory):
                     song_list.append({"title": clean_title(f), "path": os.path.join(root, f)})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (TOTAL ISOLATION - NO KEYBOARD, NO GHOST ELEMENTS) ---
+# --- CSS (DEN ULTIMATA SCEN-LAYOUTEN) ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono&display=swap');
 
-    /* DÖLJ STREAMLIT-SKRÄP */
+    /* RIV NER STREAMLIT-STANDARD */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     [data-testid="stHeader"] {{ display: none !important; }}
     
     .block-container {{
-        padding: 0 !important;
+        padding-top: 0rem !important;
         max-width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
     }}
 
-    /* FIXED HEADER RAD */
-    .custom-nav {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 65px;
-        background: #ffffff;
-        z-index: 999999;
-        display: flex;
-        align-items: center;
-        padding-left: 10px;
+    /* LOGGAN (HEM-KNAPP) */
+    .fixed-logo-top {{
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 90px !important;
+        z-index: 1000005 !important;
+        transform: rotate(-8deg) !important;
+        cursor: pointer !important;
     }}
 
-    /* LOGGAN (HEM-LÄNK) */
-    .nav-logo {{
-        width: 85px;
-        transform: rotate(-8deg);
-        cursor: pointer;
-        margin-right: 15px;
-        filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.1));
-        transition: transform 0.2s;
+    /* OSYNLIG HEM-KNAPP */
+    .home-hitbox button {{
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 90px !important;
+        height: 55px !important;
+        opacity: 0 !important;
+        z-index: 1000006 !important;
     }}
-    .nav-logo:active {{ transform: scale(0.95) rotate(-8deg); }}
 
-    /* HTML DROPDOWN (LJUS & TANGENTBORDSFRI) */
-    .native-drop {{
+    /* RULLLISTAN (POSITION OCH STIL) */
+    div[data-testid="stSelectbox"] {{
+        position: fixed !important;
+        top: 15px !important;
+        left: 115px !important;
+        width: 220px !important;
+        z-index: 1000005 !important;
+    }}
+
+    /* TVINGA LJUS LOOK & INGET TANGENTBORD */
+    div[data-testid="stSelectbox"] > div {{
         background-color: #f2f2f2 !important;
-        color: #000000 !important;
-        border: 1px solid #cccccc !important;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-family: 'Inter', sans-serif;
-        font-size: 16px;
-        width: 200px;
-        outline: none;
-        -webkit-appearance: none; /* Tar bort mobilens standard-styling */
+        border: 1px solid #ddd !important;
+        border-radius: 10px !important;
+    }}
+    
+    /* DÖDA TANGENTBORDET */
+    div[data-testid="stSelectbox"] input {{
+        pointer-events: none !important;
+        caret-color: transparent !important;
     }}
 
-    /* LÄSRUTA (SPIKRAKA TABS) */
-    .song-stage {{
-        margin-top: 75px;
-        padding: 10px;
+    div[data-testid="stSelectbox"] * {{
+        color: #000000 !important;
+    }}
+
+    /* LÄSRUTAN (SPIKRAKA TABS) */
+    .song-display {{
+        margin-top: 85px;
+        height: 85vh !important;
+        width: 100%;
+        overflow-y: auto;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 14px !important;
         line-height: 1.2 !important;
         white-space: pre !important; 
         overflow-x: auto !important;
         color: #000 !important;
-        background-color: #ffffff !important;
+        padding-bottom: 100px;
     }}
-    
-    /* GÖM STREAMLITS EGNA ELEMENT HELT */
-    div[data-testid="stVerticalBlock"] > div:first-child {{
-        margin-top: 0 !important;
+
+    /* ARKIV-KNAPPAR */
+    .archive-btn button {{
+        background-color: #f9f9f9 !important;
+        border: 1px solid #eee !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        font-weight: 800 !important;
+        color: black !important;
+        width: 100% !important;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOGIK ---
+# --- NAVIGATION ---
 songs_dir = "library"
 all_songs = get_all_songs(songs_dir)
-
-# Hantera URL-parametrar för att byta låt utan att trigga tangentbord via Streamlit-widgets
-query_params = st.query_params
-if "song" in query_params:
-    st.session_state.song_path = urllib.parse.unquote(query_params["song"])
-    st.session_state.view = "song"
 
 if "view" not in st.session_state: st.session_state.view = "list"
 if "song_path" not in st.session_state: st.session_state.song_path = ""
 
-# --- RENDERA HEADERN MED REN HTML ---
-options_html = "".join([f'<option value="{urllib.parse.quote(s["path"])}" {"selected" if s["path"] == st.session_state.song_path else ""}>{s["title"]}</option>' for s in all_songs])
-
-header_html = f"""
-<div class="custom-nav">
-    <a href="/?view=list" target="_self">
-        <img src="data:image/png;base64,{logo_b64 if logo_b64 else ''}" class="nav-logo">
-    </a>
-    <select class="native-drop" onchange="window.location.href='/?song=' + this.value">
-        <option value="" disabled {"selected" if not st.session_state.song_path else ""}>Välj låt...</option>
-        {options_html}
-    </select>
-</div>
-"""
-st.markdown(header_html, unsafe_allow_html=True)
-
-# Hem-logik via URL
-if query_params.get("view") == "list":
+# 1. Osynlig hem-trigger
+st.markdown('<div class="home-hitbox">', unsafe_allow_html=True)
+if st.button(" ", key="home_trigger"):
     st.session_state.view = "list"
     st.session_state.song_path = ""
-    st.query_params.clear()
     st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
+
+# 2. Loggan
+if logo_b64:
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="fixed-logo-top">', unsafe_allow_html=True)
+
+# 3. Rullistan (bredvid loggan)
+song_titles = [s["title"] for s in all_songs]
+try:
+    current_idx = next(i for i, s in enumerate(all_songs) if s["path"] == st.session_state.song_path)
+except:
+    current_idx = 0
+
+selected_title = st.selectbox("", options=song_titles, index=current_idx, label_visibility="collapsed", key="global_nav")
+
+if all_songs:
+    new_path = next(s["path"] for s in all_songs if s["title"] == selected_title)
+    if new_path != st.session_state.song_path:
+        st.session_state.song_path = new_path
+        st.session_state.view = "song"
+        st.rerun()
 
 # --- INNEHÅLL ---
 if st.session_state.view == "list":
-    st.markdown('<div style="height:80px;"></div>', unsafe_allow_html=True)
-    st.subheader("Mina Låtar")
+    st.markdown('<div style="height:90px;"></div>', unsafe_allow_html=True)
+    st.subheader("Välj låt")
     if all_songs:
         cols = st.columns(2)
         for i, song in enumerate(all_songs):
             with cols[i % 2]:
-                # Vi använder vanliga länkar här med för att vara konsekventa
-                url = f"/?song={urllib.parse.quote(song['path'])}"
-                st.markdown(f'<a href="{url}" target="_self" style="text-decoration:none;"><div style="border:1px solid #eee; padding:15px; border-radius:10px; text-align:center; color:black; font-weight:bold; margin-bottom:10px; background:#f9f9f9;">{song["title"]}</div></a>', unsafe_allow_html=True)
+                st.markdown('<div class="archive-btn">', unsafe_allow_html=True)
+                if st.button(song["title"], key=f"btn_{song['path']}"):
+                    st.session_state.song_path = song["path"]
+                    st.session_state.view = "song"
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 else:
     if os.path.exists(st.session_state.song_path):
         with open(st.session_state.song_path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="song-stage">{content + ("\n"*60)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-display">{content + ("\n"*60)}</div>', unsafe_allow_html=True)

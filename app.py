@@ -20,7 +20,6 @@ def format_song_name(name):
     return name.replace('_', ' ').strip().title()
 
 def get_library_map():
-    """Skapar en mappning mellan snygga namn och filnamn"""
     files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
     return {format_song_name(f): f for f in files}
 
@@ -30,25 +29,24 @@ def get_base64_bin_file(bin_file):
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. THE STAGE-SAFE UI (LIGHT & ROUNDED) ---
+# --- 2. THE STAGE-SAFE UI (MOBILE OPTIMIZED) ---
 st.markdown(f"""
     <style>
-    /* Grundtema - Tvinga vit bakgrund */
+    /* Grundtema */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
     
-    /* Göm Streamlits egna element */
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
-    /* Huvudcontainer - Flytta ner innehåll under den massiva headern */
     .main .block-container {{
-        padding-top: 220px !important;
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+        padding-top: 170px !important; 
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        max-width: 100% !important;
     }}
 
     /* FIXED HEADER */
@@ -57,66 +55,80 @@ st.markdown(f"""
         top: 0;
         left: 0;
         width: 100%;
-        height: 190px; 
+        height: 150px; 
         background-color: #ffffff;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 25px;
+        padding: 0 15px;
         z-index: 999999;
     }}
 
-    /* LOGOTYP (Ytterligare 20% större än förra) */
+    /* LOGOTYP */
     .logo-container {{
         transform: rotate(-8deg);
         flex-shrink: 0;
+        width: 25%;
     }}
     
     .logo-img {{
-        height: 190px; /* XXL storlek */
+        height: 120px; 
         width: auto;
     }}
     
     .logo-fallback {{
         font-weight: 900;
-        font-size: 70px;
+        font-size: 35px;
         color: #000000;
         background: #ffffff;
-        padding: 15px 40px;
-        border: 8px solid #000000;
-        border-radius: 25px;
+        padding: 8px 18px;
+        border: 4px solid #000000;
+        border-radius: 12px;
     }}
 
-    /* STÄNG AV TANGENTBORD PÅ SELECTBOX */
+    /* TULLLISTAN (SELECTBOX) */
     div[data-baseweb="select"] input {{
         caret-color: transparent !important;
         pointer-events: none !important;
     }}
-    
+
     /* EXIT-KNAPP */
+    .exit-container {{
+        width: 25%;
+        display: flex;
+        justify-content: flex-end;
+    }}
+
     .exit-link {{
         background-color: #f8f8f8;
         color: #000000 !important;
-        padding: 20px 35px;
-        border-radius: 30px;
+        padding: 10px 18px;
+        border-radius: 15px;
         text-decoration: none;
         font-weight: 800;
-        font-size: 18px;
+        font-size: 13px;
         text-transform: uppercase;
-        border: 2px solid #eeeeee;
-        flex-shrink: 0;
+        border: 1px solid #eeeeee;
     }}
 
-    /* LÅT-INNEHÅLL (MONOSPACE) */
-    .tab-content {{
+    /* --- MOBILE OPTIMIZED TEXT CONTAINER --- */
+    .song-text-container {{
         font-family: 'Roboto Mono', monospace !important;
-        white-space: pre !important;
-        overflow-x: auto !important;
+        font-size: 14px !important; /* Standardstorlek för mobil läsbarhet */
+        line-height: 1.2 !important;
+        
+        /* VIKTIGT: PRE-WRAP istället för PRE */
+        /* Detta bryter rader vid skärmkant men behåller mellanslag */
+        white-space: pre-wrap !important; 
+        word-wrap: break-word !important; 
+        
         color: #000000 !important;
-        font-size: 24px;
-        line-height: 1.7;
-        padding-bottom: 85vh;
+        background-color: #ffffff !important;
+        padding: 15px 5px !important;
+        tab-size: 4 !important;
+        display: block;
+        width: 100%;
     }}
     </style>
 """, unsafe_allow_html=True)
@@ -131,18 +143,20 @@ logo_html = f'<div class="logo-fallback">PLAYIT</div>'
 if logo_b64:
     logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">'
 
-# Skapa den fasta bakgrunden för headern
 st.markdown(f"""
     <div class="stage-header">
         <div class="logo-container">{logo_html}</div>
-        <div style="width:40%;"></div> <a href="/" target="_self" class="exit-link">EXIT</a>
+        <div style="width: 45%;"></div>
+        <div class="exit-container">
+            <a href="/" target="_self" class="exit-link">EXIT</a>
+        </div>
     </div>
 """, unsafe_allow_html=True)
 
-# Placera Streamlits selectbox exakt i mitten av headern
-cols = st.columns([1, 2, 1])
-with cols[1]:
-    st.markdown('<div style="position:fixed; top:65px; width:45%; z-index:1000000;">', unsafe_allow_html=True)
+# Selectbox placering
+_, center_col, _ = st.columns([1, 2, 1])
+with center_col:
+    st.markdown('<div style="position:fixed; top:50px; width:45%; z-index:1000000;">', unsafe_allow_html=True)
     valda_laten = st.selectbox(
         "Välj låt",
         options=snygga_options,
@@ -159,12 +173,15 @@ if valda_laten != "VÄLJ LÅT...":
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             lyrics = f.read()
-        st.markdown(f'<div class="tab-content">{lyrics}</div>', unsafe_allow_html=True)
+        
+        # 60 tomma rader för skrollmån
+        full_lyrics = lyrics + ("\n" * 60)
+        
+        st.markdown(f'<div class="song-text-container">{full_lyrics}</div>', unsafe_allow_html=True)
 else:
-    # Startsida helt ren
     st.write("")
 
-# --- 6. AUTO-SCROLL TO TOP ---
+# --- 6. AUTO-SCROLL ---
 st.markdown("""
     <script>
     var mainContainer = window.parent.document.querySelector('.main');

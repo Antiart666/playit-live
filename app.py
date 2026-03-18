@@ -5,13 +5,13 @@ import streamlit.components.v1 as components
 
 # Grundinställningar
 st.set_page_config(
-    page_title="PlayIt Live ULTIMATE",
+    page_title="PlayIt Live PRO",
     page_icon="🎸",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- LOGIK FÖR TRANSPONERING ---
+# --- TRANSPONERINGSLOGIK ---
 CHORDS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 def transpose_chords(text, steps):
@@ -28,21 +28,22 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS FÖR DESIGN ---
+# --- CSS FÖR DESIGN OCH SCROLL-CONTAINER ---
 st.markdown("""
     <style>
-    .song-text {
-        font-family: 'Courier New', Courier, monospace;
-        white-space: pre-wrap; 
-        word-wrap: break-word;
+    /* Denna container blir vår egen scrollbara yta */
+    .scroll-container {
+        height: 70vh;
+        overflow-y: auto;
         background-color: #1a1a1a;
         color: #ffffff;
         padding: 20px;
         border-radius: 12px;
-        font-size: 18px; /* Lite större för scenen */
-        line-height: 1.6;
         border: 2px solid #444;
-        margin-bottom: 300px; /* Extra utrymme i botten så man kan scrolla hela vägen ut */
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 18px;
+        line-height: 1.6;
+        white-space: pre-wrap;
     }
     .stButton>button {
         width: 100%;
@@ -61,12 +62,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🎸 PlayIt Live ULTIMATE")
+st.title("🎸 PlayIt Live PRO")
 
-# Initiera session states
 if "transpose_steps" not in st.session_state: st.session_state.transpose_steps = 0
-if "scroll_speed" not in st.session_state: st.session_state.scroll_speed = 0
-if "last_song" not in st.session_state: st.session_state.last_song = ""
+if "is_scrolling" not in st.session_state: st.session_state.is_scrolling = False
 
 songs_dir = "library"
 
@@ -77,70 +76,52 @@ else:
     
     if song_files:
         st.sidebar.header("MENY")
-        search = st.sidebar.text_input("Sök låt", "")
-        filtered = [f for f in song_files if search.lower() in f.lower()]
+        selected_song = st.sidebar.selectbox("Välj låt", song_files)
         
-        if filtered:
-            selected_song = st.sidebar.selectbox("Välj låt", filtered)
-            
-            if selected_song != st.session_state.last_song:
-                st.session_state.transpose_steps = 0
-                st.session_state.scroll_speed = 0
-                st.session_state.last_song = selected_song
+        # --- TRANSPONERING ---
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Transponera")
+        t_col1, t_col2 = st.sidebar.columns(2)
+        if t_col1.button("Sänk -1"): st.session_state.transpose_steps -= 1
+        if t_col2.button("Höj +1"): st.session_state.transpose_steps += 1
+        st.sidebar.write(f"Steg: {st.session_state.transpose_steps}")
 
-            # --- TRANSPONERING ---
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("Transponera")
-            orig_key = st.sidebar.selectbox("Original-tonart:", CHORDS)
-            t_col1, t_col2 = st.sidebar.columns(2)
-            if t_col1.button("Sänk -1"): st.session_state.transpose_steps -= 1
-            if t_col2.button("Höj +1"): st.session_state.transpose_steps += 1
-            new_key = CHORDS[(CHORDS.index(orig_key) + st.session_state.transpose_steps) % 12]
-            st.sidebar.markdown(f'<div class="info-box"><strong>{new_key}</strong></div>', unsafe_allow_html=True)
+        # --- AUTO-SCROLL KONTROLLER ---
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Auto-scroll")
+        
+        if st.sidebar.button("STARTA SCROLL"):
+            st.session_state.is_scrolling = True
+        
+        if st.sidebar.button("STOPPA SCROLL"):
+            st.session_state.is_scrolling = False
+            st.rerun()
 
-            # --- AUTO-SCROLL KONTROLLER ---
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("Auto-scroll")
-            
-            s_col1, s_col2 = st.sidebar.columns(2)
-            if s_col1.button("Saktare"): st.session_state.scroll_speed = max(0, st.session_state.scroll_speed - 1)
-            if s_col2.button("Snabbare"): st.session_state.scroll_speed = min(10, st.session_state.scroll_speed + 1)
-            
-            st.sidebar.markdown(f'<div class="info-box">Fart: <strong>{st.session_state.scroll_speed}</strong></div>', unsafe_allow_html=True)
-            
-            if st.sidebar.button("STOPPA ALLT", type="primary"):
-                st.session_state.scroll_speed = 0
-                st.session_state.transpose_steps = 0
-                st.rerun()
+        # Läs och förbered texten
+        with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        content = transpose_chords(content, st.session_state.transpose_steps)
+        st.subheader(selected_song.replace(".md", ""))
 
-            # --- VISA LÅTEN ---
-            with open(os.path.join(songs_dir, selected_song), "r", encoding="utf-8") as f:
-                content = f.read()
-            
-            content = transpose_chords(content, st.session_state.transpose_steps)
-            st.subheader(selected_song.replace(".md", ""))
+        # HTML/JS för att scrolla inuti containern
+        # Vi använder ett unikt ID 'song-box' för containern
+        container_html = f'<div id="song-box" class="scroll-container">{content}</div>'
+        
+        if st.session_state.is_scrolling:
+            # JavaScript som letar upp 'song-box' inuti parent-fönstret
+            components.html("""
+                <script>
+                var container = window.parent.document.getElementById("song-box");
+                if (container) {
+                    var scrollInterval = setInterval(function() {
+                        container.scrollTop += 1;
+                    }, 50); // Justera siffran 50 för hastighet (lägre = snabbare)
+                }
+                </script>
+            """, height=0)
 
-            # --- NY SCROLL-INJEKTION ---
-            if st.session_state.scroll_speed > 0:
-                # Beräkna hastighet: Högre fart = kortare delay
-                ms_delay = (11 - st.session_state.scroll_speed) * 50 
-                
-                components.html(f"""
-                    <script>
-                    var scrollInterval;
-                    function startScroll() {{
-                        clearInterval(scrollInterval);
-                        scrollInterval = setInterval(function() {{
-                            window.parent.window.scrollBy(0, 1);
-                        }}, {ms_delay});
-                    }}
-                    startScroll();
-                    </script>
-                """, height=0)
-
-            st.markdown(f'<div class="song-text">{content}</div>', unsafe_allow_html=True)
-        else:
-            st.sidebar.warning("Ingen träff.")
+        st.markdown(container_html, unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 st.sidebar.write("Rock on! 🤘")

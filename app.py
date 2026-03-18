@@ -1,9 +1,8 @@
 import streamlit as st
 import os
-import base64
-import urllib.parse
+from pathlib import Path
 
-# 1. Konfiguration
+# --- KONFIGURATION & SETUP ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -11,151 +10,171 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- FUNKTIONER ---
-def get_image_base64(path):
-    if os.path.exists(path):
-        try:
-            with open(path, "rb") as f:
-                return base64.b64encode(f.read()).decode()
-        except: return ""
-    return ""
+# Biblioteksinställningar
+LIB_DIR = Path("library")
+if not LIB_DIR.exists():
+    LIB_DIR.mkdir(parents=True, exist_ok=True)
+    # Skapa exempel-filer om mappen är tom för demo
+    (LIB_DIR / "Exempellåt 1.md").write_text("# Exempellåt 1\nC | G | Am | F", encoding="utf-8")
+    (LIB_DIR / "Exempellåt 2.md").write_text("# Exempellåt 2\nD | A | Bm | G", encoding="utf-8")
 
-def get_all_songs():
-    songs = []
-    path = "library"
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            if f.endswith(".md"):
-                title = f.replace(".md", "").replace("_", " ").strip().capitalize()
-                songs.append({"title": title, "filename": f})
-    return sorted(songs, key=lambda x: x["title"])
+# Hämta låtlista (sorterad)
+song_files = sorted([f.stem for f in LIB_DIR.glob("*.md")])
 
-# --- SESSION STATE & URL LOGIK ---
-songs = get_all_songs()
-query_params = st.query_params
-current_song_file = query_params.get("s", "")
-
-# --- CSS (TOTAL KONTROLL) ---
-logo_data = get_image_base64("logo.png")
-
-st.markdown(f"""
-<style>
-    /* Dölj allt Streamlit-standard */
-    [data-testid="stHeader"], header, footer, #MainMenu {{ display: none !important; }}
-    .stApp {{ background-color: #ffffff !important; }}
-    .block-container {{ padding: 0 !important; max-width: 100% !important; }}
-
-    /* FAST NAVIGERINGSRAD */
-    .custom-header {{
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 70px;
-        background: #ffffff;
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 0 10px;
-        z-index: 1000000;
-        border-bottom: 2px solid #f0f0f0;
-        box-sizing: border-box;
-    }}
-
-    .nav-left {{ display: flex; align-items: center; }}
+# --- CSS: FIXERAD HEADER & SCEN-ANPASSAD STYLING ---
+st.markdown("""
+    <style>
+    /* Ta bort Streamlits standard-padding i toppen */
+    .block-container { padding-top: 5rem !important; padding-bottom: 20rem !important; }
     
-    .logo-img {{
-        width: 70px;
-        transform: rotate(-8deg);
-        margin-right: 10px;
-    }}
+    /* Göm Streamlits standard-menyer för renare scen-vy */
+    #MainMenu, footer, header {visibility: hidden;}
 
-    /* HTML DROPDOWN (Tangentbordssäkert) */
-    .native-drop {{
-        background-color: #1a1a1a;
+    /* FIXERAD HEADER */
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 70px;
+        background-color: #0e1117;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 15px;
+        border-bottom: 2px solid #333;
+    }
+
+    /* LOGGA (Vänster) */
+    .header-logo {
+        color: #ff4b4b;
+        font-weight: 800;
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+
+    /* RULLISTA (Mitten) - Undviker Tangentbords-fällan via CSS-styling av HTML Select */
+    .custom-select-container {
+        flex-grow: 1;
+        margin: 0 15px;
+        max-width: 500px;
+    }
+
+    .custom-select {
+        width: 100%;
+        background-color: #1e1e1e;
+        color: white;
+        border: 1px solid #444;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 16px; /* Förhindrar zoom på iOS */
+        appearance: none;
+    }
+
+    /* EXIT-KNAPP (Höger) */
+    .exit-btn {
+        background-color: #ff4b4b;
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 16px;
-        width: 160px;
-        outline: none;
-    }}
-
-    /* EXIT KNAPP */
-    .exit-btn {{
-        background-color: #ff4b4b;
-        color: white !important;
-        padding: 10px 15px;
-        border-radius: 8px;
-        text-decoration: none;
+        padding: 8px 15px;
+        border-radius: 4px;
         font-weight: bold;
-        font-family: sans-serif;
-        font-size: 14px;
-    }}
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
 
-    /* LÅT-TEXT */
-    .lyrics-container {{
-        margin-top: 85px;
-        padding: 20px;
-        font-family: 'Roboto Mono', monospace !important;
-        font-size: 14px;
-        line-height: 1.2;
-        white-space: pre;
+    /* TAB-RENDERING (Monospace & Scroll) */
+    .tab-content {
+        font-family: 'Roboto Mono', monospace;
+        white-space: pre !important;
         overflow-x: auto;
-        color: #000;
-        background-color: #fff;
-    }}
+        background-color: #111;
+        padding: 20px;
+        border-radius: 8px;
+        line-height: 1.5;
+        font-size: 1.1rem;
+        color: #ddd;
+    }
 
-    /* ARKIV-KNAPPAR */
-    .archive-list {{
-        margin-top: 90px;
-        padding: 20px;
+    /* GRID-SYSTEM FÖR STARTSIDA */
+    .song-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }}
-    .song-card {{
-        background: #f8f8f8;
-        border: 1px solid #ddd;
-        padding: 20px;
-        border-radius: 12px;
-        text-align: center;
-        text-decoration: none;
-        color: black;
-        font-weight: bold;
-        font-family: sans-serif;
-    }}
-</style>
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        padding-top: 20px;
+    }
+    
+    .stButton>button {
+        width: 100%;
+        height: 80px;
+        background-color: #262730;
+        color: white;
+        border: 1px solid #444;
+        font-size: 1.1rem;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
-# --- RENDERA HEADER (REN HTML) ---
-options_html = "".join([f'<option value="{s["filename"]}" {"selected" if s["filename"] == current_song_file else ""}>{s["title"]}</option>' for s in songs])
+# --- LOGIK: HANTERA VALD LÅT ---
+query_params = st.query_params
+current_song = query_params.get("song", None)
 
-header_html = f"""
-<div class="custom-header">
-    <div class="nav-left">
-        <a href="/" target="_self">
-            <img src="data:image/png;base64,{logo_data}" class="logo-img">
-        </a>
-        <select class="native-drop" onchange="window.location.href='/?s=' + this.value">
-            <option value="" {"selected" if not current_song_file else ""}>Välj låt...</option>
-            {options_html}
-        </select>
-    </div>
-    <a href="/" target="_self" class="exit-btn">EXIT</a>
-</div>
-"""
-st.markdown(header_html, unsafe_allow_html=True)
+def set_song():
+    # Callback från den dolda widgeten eller URL-parameter
+    pass
 
-# --- INNEHÅLL ---
-if current_song_file:
-    # VISA LÅT
-    file_path = os.path.join("library", current_song_file)
-    if os.path.exists(file_path):
+# --- RENDERERING: HEADER ---
+# Vi använder en kombination av HTML för layout och Streamlit query_params för interaktion
+cols = st.columns([1, 4, 1])
+
+with st.container():
+    st.markdown(f"""
+        <div class="fixed-header">
+            <div class="header-logo">PLAYIT PRO</div>
+            <div class="custom-select-container">
+                <form action="/">
+                    <select class="custom-select" onchange="window.location.href='?song=' + this.value">
+                        <option value="" {"selected" if not current_song else ""}>Välj låt...</option>
+                        {''.join([f'<option value="{s}" {"selected" if current_song == s else ""}>{s}</option>' for s in song_files])}
+                    </select>
+                </form>
+            </div>
+            <a href="/" target="_self" class="exit-btn">EXIT</a>
+        </div>
+    """, unsafe_allow_html=True)
+
+# --- RENDERERING: INNEHÅLL ---
+if current_song:
+    # Låtvy
+    file_path = LIB_DIR / f"{current_song}.md"
+    if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-        st.markdown(f'<div class="lyrics-container">{content}{chr(10)*60}</div>', unsafe_allow_html=True)
+        
+        st.markdown(f'<div class="tab-content">{content}</div>', unsafe_allow_html=True)
+        
+        # Extra padding i botten för att kunna skrolla förbi sista raden
+        st.markdown("<div style='height: 60vh;'></div>", unsafe_allow_html=True)
     else:
-        st.error("Filen saknas.")
+        st.error("Låten hittades inte.")
+        if st.button("Tillbaka till start"):
+            st.query_params.clear()
+            st.rerun()
 else:
-    # VISA ARKIV
-    st.markdown('<div class="archive-list">', unsafe_allow_html=True)
-    for s in songs:
-        st.markdown(f'<a href="/?s={s["filename"]}" target="_self" class="song-card">{s["title"]}</a>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Startsida (Grid)
+    st.subheader("BIBLIOTEK")
+    if not song_files:
+        st.info("Inga .md-filer hittades i mappen 'library'.")
+    else:
+        # Skapa ett rutnät med knappar
+        cols_per_row = 2 # Anpassat för mobil
+        rows = [song_files[i:i + cols_per_row] for i in range(0, len(song_files), cols_per_row)]
+        
+        for row in rows:
+            st_cols = st.columns(cols_per_row)
+            for idx, song_name in enumerate(row):
+                if st_cols[idx].button(song_name, key=song_name):
+                    st.query_params["song"] = song_name
+                    st.rerun()

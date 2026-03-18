@@ -3,7 +3,7 @@ import os
 import base64
 from pathlib import Path
 
-# --- 1. CONFIG & SETUP ---
+# --- 1. CORE SETUP ---
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -11,9 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-if "active_song" not in st.session_state:
-    st.session_state.active_song = "VÄLJ LÅT..."
-
+# Bibliotek och Logga
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
@@ -31,14 +29,14 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS & ANTI-KEYBOARD JAVASCRIPT ---
+# --- 2. THE STAGE-READY UI (TOTAL LOCKDOWN) ---
 st.markdown(f"""
     <style>
+    /* Bakgrund & Clean UI */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
         color: #000000 !important;
     }}
-
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
@@ -55,49 +53,57 @@ st.markdown(f"""
         border-bottom: 2px solid #f0f0f0;
     }}
 
-    /* LOGO (EXTRA STOR) */
+    /* LOGO (MASSIV) */
     .stage-logo {{
         position: fixed;
         left: 15px;
         top: 5px;
-        height: 150px; 
+        height: 160px; /* Ännu lite större */
         width: auto;
         transform: rotate(-6deg);
         z-index: 1000005 !important;
     }}
 
-    /* RULLIST (30% BREDD + CENTER) */
-    div[data-testid="stSelectbox"] {{
-        position: fixed !important;
-        top: 15px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: 30% !important;
-        z-index: 1000010 !important;
+    /* HTML NATIVE SELECT (Tangbordssäkert på riktigt) */
+    .native-nav-container {{
+        position: fixed;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30%;
+        z-index: 1000010;
     }}
 
-    /* TANGENTBORDS-STOPP (CSS-DEL) */
-    div[data-baseweb="select"] input {{
-        caret-color: transparent !important;
-        pointer-events: none !important;
-        touch-action: none !important;
+    .pure-select {{
+        width: 100%;
+        height: 50px;
+        background: #ffffff;
+        border: 2px solid #000;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        padding: 0 10px;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+        outline: none;
+        text-align: center;
     }}
 
-    /* START-KNAPP (ERSÄTTER EXIT) */
+    /* START-KNAPP (Pillerformad) */
     .start-anchor {{
         position: fixed;
-        top: 25px;
-        right: 25px;
+        top: 30px;
+        right: 20px;
         background: #000000;
         color: #ffffff !important;
-        padding: 12px 25px;
+        padding: 12px 30px;
         border-radius: 50px;
         font-weight: 900;
         font-size: 16px;
         text-decoration: none !important;
         z-index: 1000010 !important;
         text-transform: uppercase;
-        letter-spacing: 1px;
     }}
 
     /* SONG DISPLAY */
@@ -108,66 +114,55 @@ st.markdown(f"""
         line-height: 1.2 !important;
         white-space: pre-wrap !important;
         color: #000 !important;
-        padding-bottom: 80vh;
+        padding-bottom: 85vh;
     }}
     </style>
-
-    <script>
-    // DETTA STOPPAR TANGENTBORDET GENOM ATT TA BORT FOKUS OMEDELBART
-    setInterval(function() {{
-        var inputs = window.parent.document.querySelectorAll('input');
-        inputs.forEach(function(input) {{
-            input.setAttribute('readonly', 'true');
-            if (window.parent.document.activeElement === input) {{
-                input.blur();
-            }}
-        }});
-    }}, 100);
-    </script>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDERING ---
+# --- 3. LOGIC & DATA ---
+song_map = get_songs()
+# Hämta vald låt från URL-parameter (robustaste sättet för HTML-select)
+query_params = st.query_params
+active_song_file = query_params.get("song", None)
 
-# Bakgrund & Logo
+# --- 4. RENDER UI ---
+
+# Header & Logo
 logo_b64 = get_logo_b64()
 st.markdown('<div class="header-anchor"></div>', unsafe_allow_html=True)
 
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:20px; top:30px; font-weight:900; font-size:40px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:45px; z-index:1000005;">PLAYIT</div>', unsafe_allow_html=True)
 
-# START-knapp (Länk till startsidan)
+# START-knapp
 st.markdown('<a href="/" target="_self" class="start-anchor">START</a>', unsafe_allow_html=True)
 
-# Låtlista
-song_map = get_songs()
-options = ["VÄLJ LÅT..."] + list(song_map.keys())
+# BYGG DEN "TANGENTBORDSSÄKRA" RULLISTEN
+# Vi bygger den i ren HTML för att slippa Streamlits <input>-taggar
+options_html = '<option value="">VÄLJ LÅT...</option>'
+for snyggt_namn, filnamn in song_map.items():
+    selected = 'selected' if active_song_file == filnamn else ''
+    options_html += f'<option value="{filnamn}" {selected}>{snyggt_namn.upper()}</option>'
 
-# Selectbox
-selected = st.selectbox(
-    "Välj låt",
-    options=options,
-    index=options.index(st.session_state.active_song) if st.session_state.active_song in options else 0,
-    label_visibility="collapsed"
-)
+st.markdown(f"""
+    <div class="native-nav-container">
+        <select class="pure-select" onchange="window.location.href='?song=' + encodeURIComponent(this.value)">
+            {options_html}
+        </select>
+    </div>
+""", unsafe_allow_html=True)
 
-if selected != st.session_state.active_song:
-    st.session_state.active_song = selected
-    st.rerun()
-
-# --- 4. DISPLAY CONTENT ---
-if st.session_state.active_song != "VÄLJ LÅT...":
-    file_name = song_map[st.session_state.active_song]
-    path = LIB_DIR / f"{file_name}.md"
-    
+# --- 5. DISPLAY CONTENT ---
+if active_song_file and active_song_file in [f.stem for f in LIB_DIR.glob("*.md")]:
+    path = LIB_DIR / f"{active_song_file}.md"
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-        # Lägg till 60 tomma rader enligt spec
         st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 else:
     st.empty()
 
-# Scroll-fix
+# Scroll till toppen vid omladdning
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

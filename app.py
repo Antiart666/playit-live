@@ -3,7 +3,7 @@ import os
 import re
 import base64
 
-# 1. Konfiguration
+# 1. Konfiguration - Ren och stabil start
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -14,7 +14,7 @@ st.set_page_config(
 # --- HJÄLPFUNKTIONER ---
 
 def clean_title(filename):
-    """Snyggar till titlar för scenen."""
+    """Snyggar till filnamnen."""
     name = filename.replace(".md", "").replace("_", " ")
     return name.strip().capitalize()
 
@@ -43,115 +43,112 @@ def transpose_chords(text, steps):
         return chord
     return re.sub(r"\b[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13)*\b", replace_chord, text)
 
-# --- CSS (Total kontroll på designen) ---
+# --- DESIGN (Rak logga, Stora klickytor och Rena tabs) ---
 logo_b64 = get_image_base64("logo.png")
-logo_html = f'data:image/png;base64,{logo_b64}' if logo_b64 else ""
 
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
-    /* DÖLJ ALLT FRÅN STREAMLIT */
+    /* DÖLJ STANDARD-ELEMENT */
     header, footer, #MainMenu {{ visibility: hidden !important; display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     
-    /* GLOBAL TEXTSTIL */
+    /* GLOBAL TEXT */
     * {{ color: #000000 !important; font-family: 'Inter', sans-serif !important; }}
 
     .block-container {{
         padding-top: 0rem !important;
         max-width: 100% !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
     }}
 
-    /* 1. DEN VISUELLA LOGGAN (Ligger alltid fast i hörnet) */
-    .visual-logo {{
-        position: fixed !important;
-        top: 20px !important;
-        left: 20px !important;
-        width: 110px !important;
-        z-index: 999998 !important;
-        transform: rotate(-8deg);
-        pointer-events: none; /* Låter klicket gå igenom till knappen under */
-    }}
-
-    /* 2. DEN OSYNLIGA HEMKNAPPEN (Exakt ovanpå bilden) */
-    div[data-testid="stButton"]:nth-of-type(1) button {{
+    /* LOGGAN (Nu helt rak!) */
+    .nav-logo-fixed {{
         position: fixed !important;
         top: 15px !important;
         left: 15px !important;
-        width: 120px !important;
-        height: 80px !important;
+        width: 115px !important;
+        height: auto !important;
+        z-index: 999998 !important;
+        pointer-events: none; /* Klick går igenom till knappen */
+    }}
+
+    /* HEMKNAPPEN (Sitter exakt under loggan) */
+    div[data-testid="stButton"] > button[key="home_btn_pro"] {{
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        width: 125px !important;
+        height: 75px !important;
         z-index: 999999 !important;
-        opacity: 0 !important;
+        opacity: 0 !important; /* Helt osynlig men klickbar */
         background: transparent !important;
         border: none !important;
         cursor: pointer !important;
     }}
 
-    /* STOPPA KAOS HÖGST UPP */
-    .top-wall {{
-        height: 110px;
+    /* SKYDD FÖR ATT INNEHÅLLET SKA SYNAS */
+    .content-spacer {{
+        height: 100px;
         display: block;
     }}
 
-    /* LÄSRUTAN (GRÄNSLÖS & PERFEKTA TABS) */
-    .song-box-stage {{
-        height: 92vh !important; 
+    /* LÄSRUTAN (GRÄNSLÖS & OPTIMERAD FÖR TABS) */
+    .song-box-clean {{
+        height: 90vh !important; 
         width: 100%;
         overflow-y: auto;
         background-color: #ffffff !important;
         color: #000000 !important;
         padding: 5px !important;
-        border: none !important; /* Ingen ram längre */
+        border: none !important;
         
-        /* Monospace-fix för tabs */
+        /* Courier för perfekt monospaced alignment */
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 14px !important; /* Minskat för att rymma hela tab-rader */
+        font-size: 14px !important; 
         line-height: 1.2 !important;
-        white-space: pre !important; /* Förhindrar brytning som skapar "taggighet" */
-        overflow-x: auto !important; /* Tillåter scroll i sidled om tabbat är bredare än skärmen */
+        white-space: pre !important; /* Förhindrar kaos i tabs */
     }}
 
     /* ARKIV-KNAPPAR */
     div[data-testid="stButton"] > button {{
         background-color: #ffffff !important;
         border: 2px solid #000000 !important;
-        border-radius: 18px !important;
+        border-radius: 15px !important;
         font-weight: 700 !important;
         height: 3.5em !important;
         width: 100% !important;
     }}
 
-    /* VERKTYGSBOX */
+    /* VERKTYG */
     .tools-tray {{
-        margin: 40px 10px;
-        padding: 25px;
+        margin-top: 40px;
+        padding: 20px;
         background-color: #fcfcfc;
         border: 2px dashed #000;
-        border-radius: 25px;
+        border-radius: 20px;
     }}
     </style>
     """, unsafe_allow_html=True)
 
 # --- 2. LOGIK & NAVIGATION ---
 if "view" not in st.session_state: st.session_state.view = "list"
-if "song_path" not in st.session_state: st.session_state.song_path = ""
+if "song_id" not in st.session_state: st.session_state.song_id = ""
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scroll" not in st.session_state: st.session_state.scroll = 0
 
-# LOGGAN (Bilden som alltid visas)
+# RITA LOGGAN
 if logo_b64:
-    st.markdown(f'<img src="{logo_html}" class="visual-logo">', unsafe_allow_html=True)
+    st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="nav-logo-fixed">', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="visual-logo" style="background:black;color:white;padding:10px;border-radius:10px;">HEM</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-logo-fixed" style="background:black;color:white;padding:10px;border-radius:5px;">HEM</div>', unsafe_allow_html=True)
 
-# OSYNLIG KNAPP (Detta är den första knappen i koden, triggar "Hem")
-if st.button(" ", key="home_trigger"):
+# HEMKNAPPEN (Dold men stor)
+if st.button(" ", key="home_btn_pro"):
     st.session_state.view = "list"
-    st.session_state.song_path = ""
-    st.session_state.scroll = 0
+    st.session_state.song_id = ""
     st.rerun()
 
 songs_dir = "library"
@@ -159,11 +156,11 @@ songs_dir = "library"
 # --- 3. RENDERING ---
 
 if not os.path.exists(songs_dir):
-    st.error("Mappen 'library' saknas på GitHub.")
+    st.error("Mappen 'library' saknas.")
 else:
     if st.session_state.view == "list":
-        # ARKIV
-        st.markdown('<div class="top-wall"></div>', unsafe_allow_html=True)
+        # --- ARKIVVYN ---
+        st.markdown('<div class="content-spacer"></div>', unsafe_allow_html=True)
         
         for root, dirs, files in os.walk(songs_dir):
             category = os.path.basename(root)
@@ -176,11 +173,11 @@ else:
                 for i, f in enumerate(valid_files):
                     with cols[i % 2]:
                         if st.button(clean_title(f), key=os.path.join(root, f)):
-                            st.session_state.song_path = os.path.join(root, f)
+                            st.session_state.song_id = os.path.join(root, f)
                             st.session_state.view = "song"
                             st.rerun()
 
-        # VERKTYG
+        # INSTÄLLNINGAR
         st.markdown('<div class="tools-tray">', unsafe_allow_html=True)
         st.subheader("⚙️ Verktyg")
         c1, c2 = st.columns(2)
@@ -197,17 +194,18 @@ else:
         st.markdown('</div>', unsafe_allow_html=True)
 
     else:
-        # SCEN (Låten)
+        # --- SCENVYN ---
+        # Mellanrum så rutan inte krockar med loggan
         st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
         
-        if os.path.exists(st.session_state.song_path):
-            with open(st.session_state.song_path, "r", encoding="utf-8") as f:
+        if os.path.exists(st.session_state.song_id):
+            with open(st.session_state.song_id, "r", encoding="utf-8") as f:
                 content = f.read()
             
             content = transpose_chords(content, st.session_state.transpose)
             full_text = content + ("\n" * 60)
 
-            # Auto-scroll (Lokaliserad för mobilstabilitet)
+            # Auto-scroll (Lokaliserad fix)
             if st.session_state.scroll > 0:
                 delay = (11 - st.session_state.scroll) * 45
                 st.markdown(f"""
@@ -220,7 +218,7 @@ else:
                     </script>
                 """, unsafe_allow_html=True)
 
-            st.markdown(f'<div id="song-view" class="song-box-stage">{full_text}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div id="song-view" class="song-box-clean">{full_text}</div>', unsafe_allow_html=True)
         else:
             st.session_state.view = "list"
             st.rerun()

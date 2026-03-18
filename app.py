@@ -3,7 +3,7 @@ import os
 import base64
 import html
 
-# 1. Konfiguration
+# 1. Grundkonfiguration
 st.set_page_config(
     page_title="PlayIt Live PRO",
     page_icon="🎸",
@@ -13,17 +13,12 @@ st.set_page_config(
 
 # --- FUNKTIONER ---
 
-def clean_title(filename):
-    name = filename.replace(".md", "").replace("_", " ")
-    return name.strip().capitalize()
-
 def get_image_base64(path):
     if os.path.exists(path):
         try:
             with open(path, "rb") as img_file:
                 return base64.b64encode(img_file.read()).decode()
-        except:
-            return ""
+        except: return ""
     return ""
 
 @st.cache_data
@@ -33,20 +28,17 @@ def get_all_songs(directory):
         for root, dirs, files in os.walk(directory):
             for f in files:
                 if f.endswith(".md"):
-                    # Vi sparar den relativa stigen för säker hantering
                     rel_path = os.path.relpath(os.path.join(root, f), directory)
-                    song_list.append({
-                        "title": clean_title(f),
-                        "path": rel_path
-                    })
+                    title = f.replace(".md", "").replace("_", " ").strip().capitalize()
+                    song_list.append({"title": title, "path": rel_path})
     return sorted(song_list, key=lambda x: x["title"])
 
-# --- CSS (FÖRFINAD FÖR LIVE-BRUK) ---
+# --- CSS & JAVASCRIPT ---
 logo_b64 = get_image_base64("logo.png")
 
 st.markdown(f"""
 <style>
-    /* Dölj Streamlit-skräp helt */
+    /* Dölj Streamlit standard */
     header, footer, #MainMenu, [data-testid="stHeader"] {{ display: none !important; }}
     .stApp {{ background-color: #ffffff !important; }}
     .block-container {{ padding: 0 !important; max-width: 100% !important; }}
@@ -54,35 +46,33 @@ st.markdown(f"""
     /* NAVBAR */
     .nav-bar {{
         position: fixed;
-        top: 0; left: 0; width: 100%; height: 65px;
+        top: 0; left: 0; width: 100%; height: 60px;
         background: white; z-index: 999999;
         display: flex; align-items: center; padding-left: 10px;
         border-bottom: 1px solid #eee;
     }}
 
-    /* LOGGA */
     .logo-img {{
-        width: 85px; transform: rotate(-8deg);
+        width: 80px; transform: rotate(-8deg);
         cursor: pointer; margin-right: 15px;
     }}
 
-    /* DROPDOWN (Ljus, inget tangentbord) */
-    .native-drop {{
-        background-color: #f2f2f2 !important;
+    /* DROPDOWN (Native HTML - Triggerar mobilens rullhjul) */
+    .song-select {{
+        background-color: #f0f0f0 !important;
         color: #000000 !important;
         border: 1px solid #ccc !important;
         border-radius: 8px;
         padding: 8px 12px;
         font-size: 16px;
-        width: 220px;
+        width: 200px;
         outline: none;
-        font-family: sans-serif;
-        -webkit-appearance: none;
+        -webkit-appearance: menulist; /* Tvingar fram dropdown-pilen */
     }}
 
-    /* LÅT-DISPLAY */
-    .song-area {{
-        margin-top: 75px;
+    /* LÄSRUTA */
+    .song-display {{
+        margin-top: 70px;
         padding: 15px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 14px !important;
@@ -90,9 +80,21 @@ st.markdown(f"""
         white-space: pre !important; 
         overflow-x: auto !important;
         color: #000 !important;
-        background-color: #ffffff !important;
     }}
 </style>
+
+<script>
+    // Funktion för att byta låt och tvinga omladdning
+    function changeSong(path) {{
+        if (path) {{
+            const url = new URL(window.location.href);
+            url.searchParams.set('s', path);
+            window.location.href = url.href;
+        }} else {{
+            window.location.href = '/';
+        }}
+    }}
+</script>
 """, unsafe_allow_html=True)
 
 # --- LOGIK ---
@@ -100,23 +102,21 @@ songs_dir = "library"
 all_songs = get_all_songs(songs_dir)
 valid_paths = {s["path"] for s in all_songs}
 
-# Hämta vald låt från URL
 params = st.query_params
 current_s = params.get("s", "")
 
 # --- RENDER HEADER ---
 options_html = f'<option value="" {"selected" if not current_s else ""}>Välj låt...</option>'
 for s in all_songs:
-    selected = "selected" if s["path"] == current_s else ""
-    # html.escape skyddar mot konstiga tecken i filnamn
-    options_html += f'<option value="{html.escape(s["path"])}" {selected}>{html.escape(s["title"])}</option>'
+    is_sel = 'selected' if s["path"] == current_s else ''
+    options_html += f'<option value="{html.escape(s["path"])}" {is_sel}>{html.escape(s["title"])}</option>'
 
 st.markdown(f"""
 <div class="nav-bar">
     <a href="/" target="_self">
         <img src="data:image/png;base64,{logo_b64}" class="logo-img">
     </a>
-    <select class="native-drop" onchange="window.location.href='/?s=' + this.value">
+    <select class="song-select" onchange="changeSong(this.value)">
         {options_html}
     </select>
 </div>
@@ -128,13 +128,9 @@ if current_s and current_s in valid_paths:
     try:
         with open(full_path, "r", encoding="utf-8") as f:
             content = f.read()
-        
-        # Vi skyddar innehållet men behåller radbrytningar
         safe_content = html.escape(content)
-        st.markdown(f'<div class="song-area">{safe_content + ("\\n" * 60)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="song-display">{safe_content + ("\\n" * 60)}</div>', unsafe_allow_html=True)
     except:
-        st.error("Kunde inte läsa låten.")
-elif current_s:
-    st.error("Ogiltig låt.")
+        st.error("Kunde inte ladda låten.")
 else:
-    st.markdown('<div style="margin-top:120px; text-align:center; color:#ccc; font-family:sans-serif;">Välj en låt i menyn ovan för att börja</div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top:100px; text-align:center; color:#ccc; font-family:sans-serif;">Välj en låt i menyn ovan</div>', unsafe_allow_html=True)

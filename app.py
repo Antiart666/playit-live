@@ -42,16 +42,15 @@ def process_content(text, steps):
     text = re.sub(r"\[(.*?)\]", lambda m: f"[{transpose_chord(m.group(1), steps)}]", text)
     return re.sub(r"\[(.*?)\]", r'<b style="color:#D187FF; font-weight:900;">[\1]</b>', text)
 
-# --- 3. CSS (MED MASTER-PROMPT TEXTSTORLEK) ---
+# --- 3. CSS (FIXERAD KNAPP I HÖGERHÖRNET) ---
 logo_b64 = get_logo_b64()
 logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">' if logo_b64 else '<b style="color:white;font-size:30px;">PLAYIT!</b>'
 
 st.markdown(f"""
 <style>
-    /* Total rensning av Streamlit-skräp */
+    /* Rensa Streamlit */
     header, [data-testid="stHeader"], [data-testid="stToolbar"], footer {{ 
         display: none !important; 
-        height: 0 !important;
     }}
     
     [data-testid="stAppViewContainer"] {{ background-color: #000000 !important; }}
@@ -60,34 +59,47 @@ st.markdown(f"""
     /* FIXERAD HEADER */
     .custom-header {{
         position: fixed; top: 0; left: 0; width: 100%; height: 180px;
-        background: #000; z-index: 99999; border-bottom: 1px solid #222;
+        background: #000; z-index: 9999; border-bottom: 1px solid #222;
         display: flex; align-items: center; padding: 0 20px;
     }}
     
     .stage-logo {{ 
-        height: 150px; width: auto; object-fit: contain; margin-right: 20px;
+        height: 150px; width: auto; object-fit: contain;
     }}
 
-    /* LYRICS - MASTER SETTINGS (18px font) */
+    /* POSITIONERING AV LÅTAR-KNAPPEN (ÖVRE HÖGRA HÖRNET) */
+    .fixed-back-button {{
+        position: fixed;
+        top: 65px; /* Centrerat i höjdled med loggan */
+        right: 20px;
+        z-index: 100000;
+    }}
+
+    /* LYRICS - MASTER SETTINGS */
     .lyrics-wrapper {{
         margin-top: 190px; 
         padding: 20px; 
         padding-bottom: 150px;
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 18px; /* TILLBAKA TILL OPTIMAL STORLEK */
+        font-size: 18px; 
         line-height: 1.5; 
         white-space: pre-wrap;
         color: #efefef;
     }}
 
-    /* KNAPPAR */
+    /* KNAPP-STYLING */
     .stButton > button {{
         background: #111 !important; color: #fff !important;
-        border: 1px solid #333 !important; height: 45px !important;
+        border: 1px solid #444 !important; height: 50px !important;
         font-weight: bold !important;
     }}
+    
+    /* Göm Streamlits egna knappar som vi ersätter visuellt om det behövs, 
+       men här använder vi dem direkt i containern */
 </style>
-<div class="custom-header">{logo_html}</div>
+<div class="custom-header">
+    {logo_html}
+</div>
 """, unsafe_allow_html=True)
 
 # --- 4. NAVIGATION ---
@@ -105,42 +117,40 @@ if st.session_state.page == "list":
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # KONTROLLER I HEADERN (Flyttade för att matcha loggan)
-    h_col1, h_col2, h_col3 = st.columns([2, 4, 1])
-    
-    with h_col1:
-        st.markdown('<div style="margin-top:65px;"></div>', unsafe_allow_html=True)
-        if st.button("⬅ LÅTAR"):
+    # --- FIXERAD "LÅTAR"-KNAPP I HÖGERHÖRNET ---
+    # Vi lägger denna i en egen container som styrs av CSS-klassen .fixed-back-button
+    with st.container():
+        st.markdown('<div class="fixed-back-button">', unsafe_allow_html=True)
+        if st.button("⬅ LÅTAR", key="fixed_back_btn"):
             st.session_state.page = "list"
             st.session_state.scrolling = False
             st.rerun()
-            
-    with h_col2:
-        # Låtnamn diskret i headern
-        st.markdown(f"<p style='text-align:center; line-height:180px; margin:0; color:#333; font-weight:bold;'>{st.session_state.active_song.replace('_',' ')}</p>", unsafe_allow_html=True)
-        
-    with h_col3:
-        st.markdown('<div style="margin-top:65px;"></div>', unsafe_allow_html=True)
-        with st.popover("⚙️"):
-            st.write("### Panel")
-            st.write(f"Tone: **{st.session_state.transpose}**")
-            t_c1, t_c2 = st.columns(2)
-            if t_c1.button("–"): st.session_state.transpose -= 1; st.rerun()
-            if t_c2.button("+"): st.session_state.transpose += 1; st.rerun()
-            st.divider()
-            st.session_state.speed = st.slider("Fart", 1, 100, st.session_state.speed)
-            if st.button("SCROLL PÅ/AV", type="primary", use_container_width=True):
-                st.session_state.scrolling = not st.session_state.scrolling
-                st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # RENDER
+    # --- INSTÄLLNINGAR (Ligger kvar men diskret) ---
+    # Vi placerar popovern till vänster om "Låtar"-knappen
+    st.markdown('<div style="position:fixed; top:65px; right:140px; z-index:100000;">', unsafe_allow_html=True)
+    with st.popover("⚙️"):
+        st.write("### Panel")
+        st.write(f"Tone: **{st.session_state.transpose}**")
+        t_c1, t_c2 = st.columns(2)
+        if t_c1.button("–"): st.session_state.transpose -= 1; st.rerun()
+        if t_c2.button("+"): st.session_state.transpose += 1; st.rerun()
+        st.divider()
+        st.session_state.speed = st.slider("Fart", 1, 100, st.session_state.speed)
+        if st.button("SCROLL PÅ/AV", type="primary", use_container_width=True):
+            st.session_state.scrolling = not st.session_state.scrolling
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # RENDER LÅTTEXT
     file_path = LIB_DIR / f"{st.session_state.active_song}.md"
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             content = process_content(f.read(), st.session_state.transpose)
         st.markdown(f'<div class="lyrics-wrapper">{content}</div>', unsafe_allow_html=True)
 
-# --- 5. SCROLL ---
+# --- 5. SCROLL ENGINE ---
 if st.session_state.scrolling:
     delay = int(115 - st.session_state.speed)
     st.components.v1.html(f"""

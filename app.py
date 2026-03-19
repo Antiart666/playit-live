@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Initiera state säkert
 if "selected_song" not in st.session_state:
     st.session_state.selected_song = None
 
@@ -20,27 +19,19 @@ LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
 
 def format_name(n):
-    if not n: return ""
     return str(n).replace('_', ' ').strip().title()
 
 def get_songs():
-    # Säkerställ att vi bara får faktiska filer och sorterar dem
-    try:
-        files = sorted([f.stem for f in LIB_DIR.glob("*.md") if f.is_file()])
-        return {format_name(f): f for f in files}
-    except Exception:
-        return {}
+    files = sorted([f.stem for f in LIB_DIR.glob("*.md") if f.is_file()])
+    return {format_name(f): f for f in files}
 
 def get_logo_b64():
     if LOGO_PATH.exists():
-        try:
-            with open(LOGO_PATH, "rb") as f:
-                return base64.b64encode(f.read()).decode()
-        except:
-            return None
+        with open(LOGO_PATH, "rb") as f:
+            return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: ABSOLUT FIXERING & TANGENTBORDS-SPÄRR ---
+# --- 2. CSS: HORIZONTAL SCROLL & NO-OVERLAY ---
 st.markdown(f"""
     <style>
     [data-testid="stAppViewContainer"], .stApp {{
@@ -50,59 +41,62 @@ st.markdown(f"""
         display: none !important;
     }}
 
+    /* FIXED HEADER BASE */
     .header-bar {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 140px;
+        height: 160px;
         background: #ffffff;
         z-index: 999;
         border-bottom: 2px solid #f0f0f0;
     }}
 
+    /* LOGO (VÄNSTER) */
     .stage-logo {{
         position: fixed;
-        left: 15px;
+        left: 10px;
         top: 5px;
-        height: 130px;
+        height: 100px;
         z-index: 1000;
-        transform: rotate(-6deg);
+        transform: rotate(-5deg);
     }}
 
-    /* START-KNAPP */
-    div.stButton > button:first-child {{
-        position: fixed !important;
-        top: 25px !important;
-        right: 20px !important;
-        background-color: #000 !important;
-        color: #fff !important;
-        border-radius: 50px !important;
-        padding: 10px 25px !important;
-        z-index: 1001 !important;
-        font-weight: 900 !important;
+    /* START-KNAPP (HÖGER) */
+    .start-btn-container {{
+        position: fixed;
+        top: 20px;
+        right: 15px;
+        z-index: 1001;
     }}
 
-    /* POPOVER (VÄLJ LÅT) */
-    div[data-testid="stPopover"] {{
-        position: fixed !important;
-        top: 30px !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        z-index: 1001 !important;
-        width: 35% !important;
+    /* HORISONTELL LÅT-LISTA (CENTRAL) */
+    /* Denna ersätter rullisten för att inte täcka skärmen */
+    .song-slider {{
+        position: fixed;
+        top: 110px;
+        left: 0;
+        width: 100%;
+        height: 50px;
+        overflow-x: auto;
+        white-space: nowrap;
+        background: #ffffff;
+        padding: 5px 10px;
+        z-index: 1002;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+        -webkit-overflow-scrolling: touch;
     }}
-    
-    div[data-testid="stPopover"] > button {{
-        width: 100% !important;
-        border: 2px solid #000 !important;
-        font-weight: 800 !important;
-        color: #000 !important;
-        background: #fff !important;
+
+    /* Styla Streamlit-knapparna inuti slidern */
+    div[data-testid="column"] {{
+        min-width: 150px !important;
     }}
 
     .song-area {{
-        margin-top: 160px;
+        margin-top: 170px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
@@ -110,9 +104,9 @@ st.markdown(f"""
         color: #000 !important;
         padding-bottom: 80vh;
     }}
-    
-    /* TOTAL TANGENTBORDS-SPÄRR */
-    input {{ display: none !important; visibility: hidden !important; }}
+
+    /* Göm alla input-fält för att säkra mot tangentbord */
+    input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -120,42 +114,43 @@ st.markdown(f"""
 
 st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
 
-# Logga
+# 1. Logga
 logo_data = get_logo_b64()
 if logo_data:
     st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:20px; top:35px; font-weight:900; font-size:35px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:15px; top:20px; font-weight:900; font-size:30px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
 
-# START (Reset)
-if st.button("START"):
-    st.session_state.selected_song = None
-    st.rerun()
+# 2. START-knapp
+with st.container():
+    st.markdown('<div class="start-btn-container">', unsafe_allow_html=True)
+    if st.button("START", key="reset_btn"):
+        st.session_state.selected_song = None
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Menyn (Popover)
+# 3. HORISONTELL MENY (Istället för rullista)
 songs = get_songs()
-current_label = format_name(st.session_state.selected_song).upper() if st.session_state.selected_song else "VÄLJ LÅT..."
+st.markdown('<div style="height: 110px;"></div>', unsafe_allow_html=True) # Spacer
 
-with st.popover(current_label):
-    if not songs:
-        st.write("Inga låtar hittades i /library")
-    else:
-        for display_name, file_stem in songs.items():
-            # Unik key baserad på filnamnet för att undvika TypeError/DuplicateKey
-            if st.button(display_name.upper(), key=f"btn_{file_stem}", use_container_width=True):
-                st.session_state.selected_song = file_stem
-                st.rerun()
+# Vi skapar en rad med knappar som man kan swipa i
+cols = st.columns(len(songs) if songs else 1)
+for i, (display_name, file_stem) in enumerate(songs.items()):
+    with cols[i]:
+        # Markera vald låt med färg
+        is_active = st.session_state.selected_song == file_stem
+        btn_type = "primary" if is_active else "secondary"
+        if st.button(display_name.upper(), key=f"s_{file_stem}", type=btn_type):
+            st.session_state.selected_song = file_stem
+            st.rerun()
 
 # --- 4. DISPLAY CONTENT ---
 if st.session_state.selected_song:
     song_file = LIB_DIR / f"{st.session_state.selected_song}.md"
     if song_file.exists():
-        try:
-            with open(song_file, "r", encoding="utf-8") as f:
-                content = f.read()
-            st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Kunde inte läsa filen: {e}")
+        with open(song_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
 
 # Scroll-fix
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import base64
-import time
 from pathlib import Path
 
 # --- 1. CONFIG ---
@@ -12,22 +11,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Initiera state för smidiga byten och scroll
-if "selected_song" not in st.session_state:
-    st.session_state.selected_song = None
-if "scrolling" not in st.session_state:
-    st.session_state.scrolling = False
+# State för att hantera låtbyten utan "hacks"
+if "active_song_content" not in st.session_state:
+    st.session_state.active_song_content = ""
+if "current_song_name" not in st.session_state:
+    st.session_state.current_song_name = ""
 
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
 
-def format_name(n):
-    return str(n).replace('_', ' ').strip().title()
-
 def get_songs():
     files = sorted([f.stem for f in LIB_DIR.glob("*.md") if f.is_file()])
-    return {format_name(f): f for f in files}
+    return {f.replace('_', ' ').strip().title(): f for f in files}
 
 def get_logo_b64():
     if LOGO_PATH.exists():
@@ -35,7 +31,7 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: OPTIMERAD LAYOUT & INGET HACK ---
+# --- 2. THE RIGID CSS (Masterprompt 1.0 Base) ---
 st.markdown(f"""
     <style>
     [data-testid="stAppViewContainer"], .stApp {{
@@ -45,75 +41,84 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* HEADER-BAR */
+    /* HEADER */
     .header-box {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 155px;
+        height: 150px;
         background: #ffffff;
         z-index: 999;
         border-bottom: 2px solid #f0f0f0;
     }}
 
-    /* LOGO (VÄNSTER) */
     .stage-logo {{
         position: fixed;
-        left: 10px;
-        top: 5px;
-        height: 90px;
+        left: 15px;
+        top: 10px;
+        height: 80px;
         z-index: 1000;
         transform: rotate(-5deg);
     }}
 
-    /* TOP-CENTER & RIGHT KNAPPAR */
-    /* Vi tvingar Streamlits knappar att ligga på rad i headern */
-    .top-buttons {{
+    /* START-KNAPP (TOP RIGHT) */
+    .start-trigger {{
         position: fixed;
         top: 25px;
         right: 15px;
+        background: #000;
+        color: #fff !important;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: 900;
         z-index: 1001;
-        display: flex;
-        gap: 10px;
-        align-items: center;
+        text-transform: uppercase;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
     }}
 
-    /* LÅT-NAVIGERING (SWIPE) */
-    .song-nav {{
+    /* LÅT-RADEN (HORISONTELL SWIPE) */
+    .song-nav-container {{
         position: fixed;
         top: 100px;
         left: 0;
         width: 100%;
         overflow-x: auto;
         white-space: nowrap;
-        padding: 10px;
+        padding: 10px 15px;
         z-index: 1002;
         background: #fff;
-        display: flex;
-        gap: 10px;
-        border-top: 1px solid #eee;
+        display: block; /* Tvingar rad-format */
+        -webkit-overflow-scrolling: touch;
+    }}
+
+    /* Låt-brickorna */
+    .song-item {{
+        display: inline-block;
+        color: #000 !important;
+        background: #f0f0f0;
+        padding: 8px 15px;
+        margin-right: 10px;
+        border-radius: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 14px;
+        border: 1px solid #ddd;
     }}
 
     /* LÅT-TEXT */
     .song-content {{
-        margin-top: 175px;
+        margin-top: 170px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
         line-height: 1.2 !important;
         white-space: pre-wrap !important;
         color: #000 !important;
-        padding-bottom: 90vh;
+        padding-bottom: 80vh;
     }}
-
-    /* Snyggare knappar för swajp-listan */
-    .stButton > button {{
-        border-radius: 8px !important;
-        text-transform: uppercase !important;
-        font-weight: 800 !important;
-    }}
-
-    /* Göm tangentbord */
+    
     input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
@@ -126,63 +131,34 @@ st.markdown('<div class="header-box"></div>', unsafe_allow_html=True)
 logo_data = get_logo_b64()
 if logo_data:
     st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="stage-logo">', unsafe_allow_html=True)
+else:
+    st.markdown('<div style="position:fixed; left:15px; top:20px; font-weight:900; font-size:30px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
 
-# Topp-knappar (Scroll & Start)
-col_top1, col_top2 = st.columns([7, 3]) # Dummy för att positionera
+# START-knapp (Vi använder st.button men stylar den som en länk för att undvika "svarta rutan")
+if st.button("START", key="reset_v8"):
+    st.session_state.active_song_content = ""
+    st.session_state.current_song_name = ""
+    st.rerun()
 
-# Vi placerar knapparna manuellt via CSS men använder ST-logik för snabbhet
-with st.container():
-    # START och SCROLL knappar
-    c1, c2, c3 = st.columns([5, 3, 2])
-    with c3: # Längst till höger
-        if st.button("START", key="reset"):
-            st.session_state.selected_song = None
-            st.session_state.scrolling = False
-            st.rerun()
-    with c2: # Mitten
-        scroll_label = "STOPP" if st.session_state.scrolling else "SCROLL"
-        if st.button(scroll_label, key="scroll_toggle"):
-            st.session_state.scrolling = not st.session_state.scrolling
-            st.rerun()
-
-# LÅT-MENY (Horisontell swajp)
+# LÅT-RADEN (Byggd med HTML för att garantera swajp)
 songs = get_songs()
-if songs:
-    # Vi skapar en rad med små knappar som inte triggar omladdning av hela sidan
-    song_cols = st.columns(len(songs))
-    for i, (name, stem) in enumerate(songs.items()):
-        with song_cols[i]:
-            if st.button(name.upper(), key=f"btn_{stem}", use_container_width=True):
-                st.session_state.selected_song = stem
-                st.session_state.scrolling = False # Stoppa scroll vid byte
-                st.rerun()
+st.markdown('<div class="song-nav-container">', unsafe_allow_html=True)
+# Vi skapar en rad knappar. När man trycker på en knapp, triggas Streamlit-logik blixtsnabbt.
+cols = st.columns(len(songs) if songs else 1)
+for i, (display_name, file_stem) in enumerate(songs.items()):
+    with cols[i]:
+        if st.button(display_name.upper(), key=f"s_{file_stem}"):
+            song_path = LIB_DIR / f"{file_stem}.md"
+            if song_path.exists():
+                with open(song_path, "r", encoding="utf-8") as f:
+                    st.session_state.active_song_content = f.read()
+                    st.session_state.current_song_name = display_name
+            st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
 # --- 4. DISPLAY CONTENT ---
-if st.session_state.selected_song:
-    song_file = LIB_DIR / f"{st.session_state.selected_song}.md"
-    if song_file.exists():
-        with open(song_file, "r", encoding="utf-8") as f:
-            lyrics = f.read()
-        st.markdown(f'<div class="song-content" id="lyrics-area">{lyrics}</div>', unsafe_allow_html=True)
+if st.session_state.active_song_content:
+    st.markdown(f'<div class="song-content">{st.session_state.active_song_content}</div>', unsafe_allow_html=True)
 
-# --- 5. JAVASCRIPT: AUTOSCROLL & RESET ---
-if st.session_state.scrolling:
-    # Detta skript rullar sidan sakta nedåt
-    st.markdown("""
-        <script>
-        var scrollInterval = setInterval(function() {
-            window.scrollBy(0, 1);
-        }, 50); // Justera hastighet här (högre siffra = långsammare)
-        window.scrollInterval = scrollInterval;
-        </script>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <script>
-        clearInterval(window.scrollInterval);
-        </script>
-    """, unsafe_allow_html=True)
-
-# Scroll till toppen vid ny låt (om inte scroll är på)
-if not st.session_state.scrolling:
-    st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)
+# Scroll till toppen
+st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

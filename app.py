@@ -3,10 +3,10 @@ import re
 import base64
 from pathlib import Path
 
-# --- 1. CONFIG & STATE ---
+# --- 1. CONFIG ---
 st.set_page_config(page_title="PlayIt! Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Session State Setup
+# Session State
 for key, val in {
     "active_song": None, "transpose_val": 0, "font_size": 22, 
     "is_scrolling": False, "scroll_speed": 40}.items():
@@ -41,114 +41,126 @@ def process_content(text, steps):
     text = re.sub(r"\[(.*?)\]", lambda m: f"[{transpose_chord(m.group(1), steps)}]", text)
     return re.sub(r"\[(.*?)\]", r'<span style="color:#6750A4; font-weight:900;">[\1]</span>', text)
 
-# --- 3. CSS (HARDCODED LAYOUT) ---
+# --- 3. CSS (BRUTAL OVERRIDE) ---
+# Vi nollställer ALLA marginaler som Streamlit lägger till automatiskt
 st.markdown(f"""
     <style>
-    [data-testid="stAppViewContainer"], .stApp {{ background-color: #ffffff !important; }}
+    /* Nollställ Streamlits tomrum i toppen */
+    [data-testid="stAppViewContainer"] {{ background-color: #ffffff !important; }}
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{ display: none !important; }}
+    .main .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+    [data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
 
-    /* FIXED HEADER BOX */
-    .fixed-header {{
-        position: fixed; top: 0; left: 0; width: 100%; height: 110px;
-        background: #ffffff; z-index: 9999; border-bottom: 2px solid #eee;
-        display: flex; align-items: center; padding: 0 15px;
+    /* FIXERAD LOGGA - LÄNGST UPP TILL VÄNSTER */
+    .fixed-logo-container {{
+        position: fixed; top: 10px; left: 15px; width: 180px; height: 80px;
+        z-index: 10001; display: flex; align-items: center;
+    }}
+    .logo-img {{ height: 70px; width: auto; object-fit: contain; }}
+    .logo-fallback {{ font-weight: 900; font-size: 35px; color: #000; letter-spacing: -1px; }}
+
+    /* LÅTAR-KNAPP - LÄNGST UPP TILL HÖGER */
+    .back-btn-box {{
+        position: fixed; top: 20px; right: 15px; z-index: 10002;
+    }}
+    div.stButton > button[kind="secondary"] {{
+        background: #000 !important; color: #fff !important;
+        border-radius: 50px !important; font-weight: 800 !important;
+        padding: 0 20px !important; height: 45px !important; border: none !important;
     }}
 
-    .logo-img {{ height: 80px; width: auto; }}
-    .logo-text {{ font-weight: 900; font-size: 32px; color: #000; }}
-
-    /* BACK BUTTON (LÅTAR) */
-    .back-btn-container {{
-        position: fixed; top: 25px; right: 15px; z-index: 10000;
+    /* KONTROLL-PANEL (RADEN UNDER LOGGAN) */
+    .controls-wrapper {{
+        position: fixed; top: 95px; left: 0; width: 100%; height: 60px;
+        background: #ffffff; border-bottom: 2px solid #f0f0f0;
+        z-index: 10000; display: flex; align-items: center;
     }}
 
-    /* CONTROL BAR (UNDER HEADER) */
-    .control-bar {{
-        position: fixed; top: 110px; left: 0; width: 100%; height: 60px;
-        background: #fdfdfd; z-index: 9998; border-bottom: 1px solid #ddd;
-        display: flex; justify-content: space-around; align-items: center;
+    /* TEXT & LISTA POSITIONERING */
+    .list-view {{ margin-top: 100px; padding: 20px; }}
+    .song-view {{ 
+        margin-top: 165px; padding: 20px 20px 200px 20px; 
+        font-family: 'Roboto Mono', monospace; 
+        font-size: {st.session_state.font_size}px; 
+        line-height: 1.4; white-space: pre-wrap; color: #000;
     }}
 
-    /* CONTENT AREAS */
-    .list-area {{ margin-top: 120px; padding: 15px; }}
-    .song-area {{ margin-top: 185px; padding: 0 20px 150px 20px; 
-                  font-family: 'Roboto Mono', monospace; font-size: {st.session_state.font_size}px; 
-                  line-height: 1.4; white-space: pre-wrap; }}
-
-    /* STYLING FOR BUTTONS */
-    .stButton > button {{ border-radius: 12px !important; font-weight: 800 !important; height: 45px !important; }}
-    button[kind="secondary"] {{ background: #000 !important; color: #fff !important; border-radius: 50px !important; }}
+    /* Touch-fix för knappar */
+    .stButton > button {{ border-radius: 10px !important; font-weight: 800 !important; }}
     
     input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. HEADER RENDERING ---
-st.markdown('<div class="fixed-header">', unsafe_allow_html=True)
+# --- 4. RENDER STATIC ELEMENTS ---
+
+# Logga (Alltid synlig)
+st.markdown('<div class="fixed-logo-container">', unsafe_allow_html=True)
 logo_b64 = get_logo_b64()
 if logo_b64:
     st.markdown(f'<img src="data:image/png;base64,{logo_b64}" class="logo-img">', unsafe_allow_html=True)
 else:
-    st.markdown('<span class="logo-text">PLAYIT!</span>', unsafe_allow_html=True)
+    st.markdown('<span class="logo-fallback">PLAYIT!</span>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 5. NAVIGATION LOGIK ---
+# --- 5. NAVIGATION ---
 
 if not st.session_state.active_song:
     # --- SIDA 1: LÅTLISTAN ---
-    st.markdown('<div class="list-area">', unsafe_allow_html=True)
-    st.markdown("### MINA LÅTAR")
+    st.markdown('<div class="list-view">', unsafe_allow_html=True)
     songs = get_songs()
     for name, stem in songs.items():
-        if st.button(name.upper(), key=f"list_{stem}", use_container_width=True):
+        if st.button(name.upper(), key=f"L_{stem}", use_container_width=True):
             st.session_state.active_song = stem
             st.session_state.transpose_val = 0
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # --- SIDA 2: LÅTEN ---
-    # LÅTAR (Back-knapp) längst upp till höger
-    with st.container():
-        st.markdown('<div class="back-btn-container">', unsafe_allow_html=True)
-        if st.button("LÅTAR", key="back_btn", type="secondary"):
-            st.session_state.active_song = None
-            st.session_state.is_scrolling = False
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    # --- SIDA 2: SPEL-LÄGE ---
+    # LÅTAR-knapp (Back)
+    st.markdown('<div class="back-btn-box">', unsafe_allow_html=True)
+    if st.button("LÅTAR", key="back_cmd", type="secondary"):
+        st.session_state.active_song = None
+        st.session_state.is_scrolling = False
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # KONTROLL-RADEN (Sitter alltid under loggan)
-    st.markdown('<div class="control-bar">', unsafe_allow_html=True)
-    col1, col2, col3, col4, col5, col6 = st.columns([1,1,1,1,1,1])
-    with col1:
+    # Kontroll-rad (Transp & Scroll)
+    st.markdown('<div class="controls-wrapper">', unsafe_allow_html=True)
+    c1, c2, c3, c4, c5, c6 = st.columns([1,1,1,1,1,1])
+    with c1:
         if st.button("–", key="t-"): st.session_state.transpose_val -= 1; st.rerun()
-    with col2:
+    with c2:
         if st.button("STD", key="t0"): st.session_state.transpose_val = 0; st.rerun()
-    with col3:
+    with c3:
         if st.button("+", key="t+"): st.session_state.transpose_val += 1; st.rerun()
-    with col4:
-        scroll_icon = "⏸" if st.session_state.is_scrolling else "▶"
-        if st.button(scroll_icon, key="sc_sw", type="primary"): 
+    with c4:
+        sc_icon = "⏸" if st.session_state.is_scrolling else "▶"
+        if st.button(sc_icon, key="sc_toggle", type="primary"): 
             st.session_state.is_scrolling = not st.session_state.is_scrolling
             st.rerun()
-    with col5:
+    with c5:
         if st.button("S-"): st.session_state.scroll_speed = max(5, st.session_state.scroll_speed - 5); st.rerun()
-    with col6:
+    with c6:
         if st.button("S+"): st.session_state.scroll_speed = min(100, st.session_state.scroll_speed + 5); st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # RENDERA TEXT
+    # Låttexten
     path = LIB_DIR / f"{st.session_state.active_song}.md"
     if path.exists():
         with open(path, "r", encoding="utf-8") as f:
-            lyrics = process_content(f.read(), st.session_state.transpose_val)
-        st.markdown(f'<div class="song-area">{lyrics}</div>', unsafe_allow_html=True)
+            raw_lyrics = f.read()
+        lyrics_html = process_content(raw_lyrics, st.session_state.transpose_val)
+        st.markdown(f'<div class="song-view">{lyrics_html}</div>', unsafe_allow_html=True)
+    else:
+        st.error(f"Kunde inte hitta {st.session_state.active_song}.md")
 
 # --- 6. SCROLL ENGINE ---
 if st.session_state.is_scrolling:
     ms = int((105 - st.session_state.scroll_speed) / 2)
     st.components.v1.html(f"<script>setInterval(()=>window.parent.window.scrollBy(0,1),{ms})</script>", height=0)
 
-# Scroll till toppen vid ny låt
+# Reset scroll fix
 if st.session_state.active_song and not st.session_state.is_scrolling and st.session_state.transpose_val == 0:
     st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

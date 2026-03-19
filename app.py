@@ -1,171 +1,183 @@
 import streamlit as st
-import os
-import base64
+import re
+import time
 from pathlib import Path
 
-# --- 1. CONFIG (MASTERPROMPT 1.0) ---
+# --- 1. CONFIG & SESSION STATE ---
 st.set_page_config(
-    page_title="PlayIt Live PRO",
+    page_title="PlayIt! Stage Mode",
     page_icon="🎸",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Hämta vald låt från URL för att undvika widget-kaos
-query_params = st.query_params
-active_song = query_params.get("song", None)
+if "transpose_val" not in st.session_state:
+    st.session_state.transpose_val = 0
+if "scroll_speed" not in st.session_state:
+    st.session_state.scroll_speed = 0
+if "font_size" not in st.session_state:
+    st.session_state.font_size = 16
+if "is_scrolling" not in st.session_state:
+    st.session_state.is_scrolling = False
 
-LIB_DIR = Path("library")
-LIB_DIR.mkdir(exist_ok=True)
-LOGO_PATH = Path("logo.png")
+# --- 2. TRANSPONERINGSLOGIK ---
+def transpose_chord(chord, steps):
+    notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    
+    # Regex för att dela upp ackordet (t.ex. [F#m7] -> F#, m7)
+    pattern = r"([A-G]#?)(.*)"
+    match = re.match(pattern, chord)
+    if not match:
+        return chord
+    
+    root, suffix = match.groups()
+    if root not in notes:
+        return chord
+    
+    current_index = notes.index(root)
+    new_index = (current_index + steps) % 12
+    return f"{notes[new_index]}{suffix}"
 
-def format_name(n):
-    return str(n).replace('_', ' ').strip().title()
+def process_lyrics(text, steps):
+    if steps == 0:
+        return text
+    # Hitta allt inom klamrar [C], [Am7] etc.
+    return re.sub(r"\[(.*?)\]", lambda m: f"[{transpose_chord(m.group(1), steps)}]", text)
 
-def get_songs():
-    files = sorted([f.stem for f in LIB_DIR.glob("*.md") if f.is_file()])
-    return {format_name(f): f for f in files}
-
-def get_logo_b64():
-    if LOGO_PATH.exists():
-        with open(LOGO_PATH, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    return None
-
-# --- 2. CSS: RIGID STAGE LAYOUT ---
+# --- 3. UI & CSS (MATERIAL DESIGN 3 / MOBILE FIRST) ---
 st.markdown(f"""
     <style>
-    /* Scen-bakgrund */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+    /* Clean Stage Mode */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
+        color: #1C1B1F !important;
     }}
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{
         display: none !important;
     }}
 
-    /* HEADER-PLATTA (Låst vit box överst) */
-    .header-box {{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 155px;
-        background: #ffffff;
-        z-index: 999;
-        border-bottom: 2px solid #f0f0f0;
-    }}
-
-    /* LOGO (VÄNSTER) */
-    .stage-logo {{
-        position: fixed;
-        left: 15px;
-        top: 10px;
-        height: 90px;
-        z-index: 1000;
-        transform: rotate(-5deg);
-    }}
-
-    /* START-KNAPP (UPPE HÖGER) */
-    .start-link {{
-        position: fixed;
-        top: 25px;
-        right: 20px;
-        background: #000;
-        color: #fff !important;
-        padding: 10px 25px;
-        border-radius: 50px;
-        font-weight: 900;
-        text-decoration: none !important;
-        z-index: 1001;
-        text-transform: uppercase;
-        font-size: 14px;
-        display: inline-block;
-    }}
-
-    /* LÅT-RADEN (HORISONTELL SWIPE) */
-    .song-nav {{
-        position: fixed;
-        top: 105px;
-        left: 0;
-        width: 100%;
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 10px 15px;
-        z-index: 1002;
-        background: #ffffff;
-        -webkit-overflow-scrolling: touch;
-        display: block;
-    }}
-
-    .song-link {{
-        display: inline-block;
-        color: #000 !important;
-        text-decoration: none !important;
-        font-weight: 800;
-        font-size: 14px;
-        padding: 8px 15px;
-        margin-right: 10px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background: #f9f9f9;
-        text-transform: uppercase;
-    }}
-
-    /* Markera vald låt tydligt */
-    .song-link.active {{
-        background: #ff0000 !important;
-        color: #fff !important;
-        border-color: #ff0000;
-    }}
-
-    /* LÅT-TEXTEN (ACKORDEN) */
-    .song-content {{
-        margin-top: 175px;
+    /* Låttext-område */
+    .lyrics-container {{
         font-family: 'Roboto Mono', monospace !important;
-        font-size: 15px !important;
-        line-height: 1.2 !important;
+        font-size: {st.session_state.font_size}px !important;
+        line-height: 1.6 !important;
         white-space: pre-wrap !important;
-        color: #000 !important;
-        padding-bottom: 85vh;
-        width: 100%;
+        padding: 20px 20px 180px 20px;
+        color: #1C1B1F;
     }}
     
-    /* TOTAL FÖRBUD MOT TANGENTBORD */
+    .chord {{
+        color: #6750A4;
+        font-weight: 700;
+    }}
+
+    /* STICKY CONTROL PANEL (BOTTOM) */
+    .sticky-controls {{
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #F3F0F7;
+        border-top: 1px solid #CAC4D0;
+        padding: 15px;
+        z-index: 9999;
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    }}
+
+    /* Touch-vänliga knappar (min 44px) */
+    .stButton > button {{
+        min-height: 48px !important;
+        min-width: 48px !important;
+        border-radius: 12px !important;
+        background-color: #EADDFF !important;
+        color: #21005D !important;
+        border: none !important;
+        font-weight: 600 !important;
+    }}
+    
+    .active-scroll {{
+        background-color: #6750A4 !important;
+        color: white !important;
+    }}
+
+    /* Göm input-fält (Masterprompt 1.0 skydd) */
     input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDER UI ---
+# --- 4. NAVIGATION (MASTERPROMPT 1.0 REFINED) ---
+# Header för logga och snabbval
+t_col1, t_col2 = st.columns([2, 1])
+with t_col1:
+    st.title("🎸 PlayIt!")
+with t_col2:
+    if st.button("RESET", use_container_width=True):
+        st.session_state.transpose_val = 0
+        st.session_state.scroll_speed = 0
+        st.session_state.is_scrolling = False
+        st.rerun()
 
-# Rita den fasta bakgrunden för headern
-st.markdown('<div class="header-box"></div>', unsafe_allow_html=True)
+# --- 5. LÅT-INNEHÅLL ---
+# Exempel-låt om library är tomt
+sample_lyrics = """[G] Amazing Grace, how [C] sweet the [G] sound
+That [G] saved a wretch like [D7] me
+I [G] once was lost, but [C] now am [G] found
+Was [G] blind but [D] now I [G] see"""
 
-# 1. Logga
-logo_data = get_logo_b64()
-if logo_data:
-    st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="stage-logo">', unsafe_allow_html=True)
-else:
-    st.markdown('<div style="position:fixed; left:15px; top:25px; font-weight:900; font-size:30px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
+# Här skulle get_songs() från Masterprompt 1.0 ligga
+processed_text = process_lyrics(sample_lyrics, st.session_state.transpose_val)
 
-# 2. START-knapp (Rensar URL för att nollställa låtvalet)
-st.markdown('<a href="/" target="_self" class="start-link">START</a>', unsafe_allow_html=True)
+# Rendera ackorden med färg (Regex för display)
+display_text = re.sub(r"\[(.*?)\]", r'<span class="chord">[\1]</span>', processed_text)
+st.markdown(f'<div class="lyrics-container">{display_text}</div>', unsafe_allow_html=True)
 
-# 3. LÅT-MENY (Horisontell swajp-rad)
-songs = get_songs()
-song_links_html = ""
-for display_name, file_stem in songs.items():
-    active_class = "active" if active_song == file_stem else ""
-    song_links_html += f'<a href="?song={file_stem}" target="_self" class="song-link {active_class}">{display_name.upper()}</a>'
+# --- 6. STICKY CONTROL PANEL ---
+with st.container():
+    st.markdown('<div class="sticky-controls">', unsafe_allow_html=True)
+    
+    # Rad 1: Transponering & Textstorlek
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
+    with c1:
+        if st.button("–", key="t_down"): 
+            st.session_state.transpose_val -= 1
+            st.rerun()
+    with c2:
+        st.markdown(f"<center>Tone<br><b>{st.session_state.transpose_val}</b></center>", unsafe_allow_html=True)
+    with c3:
+        if st.button("+", key="t_up"): 
+            st.session_state.transpose_val += 1
+            st.rerun()
+    with c4:
+        if st.button("A+", key="f_up"):
+            st.session_state.font_size += 2
+            st.rerun()
 
-st.markdown(f'<div class="song-nav">{song_links_html}</div>', unsafe_allow_html=True)
+    # Rad 2: Scroll
+    s_col1, s_col2 = st.columns([3, 1])
+    with s_col1:
+        st.session_state.scroll_speed = st.slider("Scroll Speed", 0, 100, st.session_state.scroll_speed)
+    with s_col2:
+        scroll_label = "STOP" if st.session_state.is_scrolling else "PLAY"
+        if st.button(scroll_label, key="scroll_btn", type="primary"):
+            st.session_state.is_scrolling = not st.session_state.is_scrolling
+            st.rerun()
+            
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 4. DISPLAY CONTENT ---
-if active_song:
-    song_file = LIB_DIR / f"{active_song}.md"
-    if song_file.exists():
-        with open(song_file, "r", encoding="utf-8") as f:
-            lyrics = f.read()
-        st.markdown(f'<div class="song-content">{lyrics}</div>', unsafe_allow_html=True)
+# --- 7. JAVASCRIPT ENGINE (SMOOTH SCROLL) ---
+if st.session_state.is_scrolling and st.session_state.scroll_speed > 0:
+    # Beräkna intervall baserat på slider (0-100)
+    delay = (101 - st.session_state.scroll_speed) / 2
+    st.components.v1.html(f"""
+        <script>
+        var scrollInterval = setInterval(function() {{
+            window.parent.window.scrollBy(0, 1);
+        }}, {delay});
+        </script>
+    """, height=0)
 
-# Nollställ scroll till toppen när en låt laddas
-st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)
+# Scroll-to-top vid reset
+if st.session_state.transpose_val == 0 and not st.session_state.is_scrolling:
+    st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

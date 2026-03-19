@@ -3,19 +3,24 @@ import re
 import base64
 from pathlib import Path
 
-# --- 1. CONFIG ---
-st.set_page_config(page_title="PlayIt!", layout="wide")
+# --- 1. GRUNDLÄGGANDE KONFIGURATION ---
+st.set_page_config(
+    page_title="PlayIt! Pro",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# Session State
+# Initiera Session State
 if "active_song" not in st.session_state: st.session_state.active_song = None
 if "transpose" not in st.session_state: st.session_state.transpose = 0
 if "scrolling" not in st.session_state: st.session_state.scrolling = False
-if "speed" not in st.session_state: st.session_state.speed = 35
+if "speed" not in st.session_state: st.session_state.speed = 30
 
 LIB_DIR = Path("library")
+LIB_DIR.mkdir(exist_ok=True)
 LOGO_PATH = Path("logo.png")
 
-# --- 2. LOGIK ---
+# --- 2. LOGIK & HJÄLPFUNKTIONER ---
 def get_songs():
     return {f.stem.replace('_', ' ').upper(): f.stem for f in LIB_DIR.glob("*.md")}
 
@@ -34,93 +39,150 @@ def transpose_chord(chord, steps):
     return f"{notes[(notes.index(root) + steps) % 12]}{suffix}"
 
 def process_text(text, steps):
+    # Transponera ackord [Am] -> [Bm]
     text = re.sub(r"\[(.*?)\]", lambda m: f"[{transpose_chord(m.group(1), steps)}]", text)
-    return re.sub(r"\[(.*?)\]", r'<b style="color:#bb86fc;">[\1]</b>', text)
+    # Färga ackorden lila/rosa för scenkontrast
+    return re.sub(r"\[(.*?)\]", r'<b style="color:#D488FF;">[\1]</b>', text)
 
-# --- 3. CSS (STAGE READY) ---
+# --- 3. DEN AVANCERADE CSS-INJEKTIONEN (MOBILOPTIMERING) ---
 st.markdown(f"""
 <style>
-    /* Svart tema & Nollställ marginaler */
-    [data-testid="stAppViewContainer"], .main, .stApp {{ background-color: #000 !important; color: #fff !important; }}
-    [data-testid="stHeader"], footer {{ display: none !important; }}
-    .main .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+    /* Nollställ Streamlit helt */
+    [data-testid="stAppViewContainer"], .main, .stApp {{
+        background-color: #000000 !important;
+        color: #ffffff !important;
+    }}
+    [data-testid="stHeader"], footer, [data-testid="stToolbar"] {{ display: none !important; }}
+    .main .block-container {{ 
+        padding: 0 !important; 
+        max-width: 100% !important; 
+        margin: 0 !important;
+    }}
 
-    /* Stor centrerad logga */
-    .header-container {{
-        width: 100%; padding: 20px 0; text-align: center; background: #000;
+    /* STICKY HEADER FÖR LOGGA */
+    .sticky-header {{
+        position: fixed; top: 0; left: 0; width: 100%; height: 100px;
+        background: #000; z-index: 1000;
+        display: flex; justify-content: center; align-items: center;
         border-bottom: 1px solid #222;
     }}
-    .big-logo {{ height: 120px; width: auto; }}
+    .logo-img {{ height: 80px; width: auto; object-fit: contain; }}
 
-    /* Kontrollraden - Snygg och smal */
-    .control-bar {{
-        background: #111; padding: 10px 0; border-bottom: 1px solid #333;
-        display: flex; justify-content: center; gap: 10px;
+    /* STICKY FOOTER FÖR KONTROLLER */
+    .sticky-footer {{
+        position: fixed; bottom: 0; left: 0; width: 100%; height: 70px;
+        background: #111; z-index: 1000;
+        display: flex; justify-content: space-around; align-items: center;
+        border-top: 1px solid #333; padding: 0 10px;
     }}
 
-    /* Låt-text */
-    .song-text {{
-        padding: 20px; font-family: 'Courier New', monospace; font-size: 18px;
-        line-height: 1.5; white-space: pre-wrap; color: #eee; background: #000;
+    /* LÅT-TEXT (MONOSPACE) */
+    .song-display {{
+        margin-top: 110px; /* Under headern */
+        margin-bottom: 80px; /* Ovanför footern */
+        padding: 20px;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 18px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        color: #cccccc;
     }}
 
-    /* Streamlit Button Styling */
+    /* Göm de faktiska Streamlit-knapparna men behåll funktionaliteten */
     .stButton > button {{
-        background: #222 !important; color: white !important;
-        border: 1px solid #444 !important; border-radius: 8px !important;
-        font-weight: bold !important; text-transform: uppercase !important;
+        width: 100%; background: #222 !important; color: white !important;
+        border: 1px solid #444 !important; font-weight: bold !important;
     }}
-    button[kind="primary"] {{ background: #bb86fc !important; color: #000 !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. HEADER (LOGGA) ---
+# --- 4. RENDER LAYOUT ---
+
+# HEADER
 logo_data = get_logo_b64()
-st.markdown('<div class="header-container">', unsafe_allow_html=True)
+st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
 if logo_data:
-    st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="big-logo">', unsafe_allow_html=True)
+    st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="logo-img">', unsafe_allow_html=True)
+else:
+    st.markdown('<h2 style="margin:0;">PLAYIT!</h2>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 5. NAVIGATION ---
-
+# NAVIGERING & INNEHÅLL
 if not st.session_state.active_song:
-    # LISTSIDA
-    st.markdown('<div style="padding:20px;">', unsafe_allow_html=True)
+    # --- LISTSIDA ---
+    st.markdown('<div style="margin-top:120px; padding:20px;">', unsafe_allow_html=True)
     songs = get_songs()
+    if not songs:
+        st.warning("Inga låtar hittades i mappen 'library/'.")
     for name, stem in songs.items():
-        if st.button(name, key=f"list_{stem}", use_container_width=True):
+        if st.button(name, key=f"btn_{stem}", use_container_width=True):
             st.session_state.active_song = stem
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # LÅTSIDA - KONTROLLER
-    c1, c2, c3, c4, c5 = st.columns([1,1,1,2,1])
-    with c1:
-        if st.button("–"): st.session_state.transpose -= 1; st.rerun()
-    with c2:
-        if st.button("STD"): st.session_state.transpose = 0; st.rerun()
-    with c3:
-        if st.button("+"): st.session_state.transpose += 1; st.rerun()
-    with c4:
-        lab = "STOPP" if st.session_state.scrolling else "SCROLL"
-        if st.button(lab, type="primary", use_container_width=True):
-            st.session_state.scrolling = not st.session_state.scrolling
-            st.rerun()
-    with c5:
-        if st.button("LÅTAR"):
-            st.session_state.active_song = None
-            st.session_state.scrolling = False
-            st.rerun()
-
-    # RENDERA LÅT
+    # --- LÅTSIDA ---
+    # Renderar texten
     file_path = LIB_DIR / f"{st.session_state.active_song}.md"
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
-            text = process_text(f.read(), st.session_state.transpose)
-        st.markdown(f'<div class="song-text">{text}</div>', unsafe_allow_html=True)
+            raw_text = f.read()
+        processed_html = process_text(raw_text, st.session_state.transpose)
+        st.markdown(f'<div class="song-display">{processed_html}</div>', unsafe_allow_html=True)
+    
+    # FOOTER KONTROLLER (Här tvingar vi rad-layout)
+    st.markdown('<div class="sticky-footer">', unsafe_allow_html=True)
+    f_col1, f_col2, f_col3, f_col4, f_col5 = st.columns([1,1,1,2,1.5])
+    
+    with f_col1:
+        if st.button("–"): 
+            st.session_state.transpose -= 1
+            st.rerun()
+    with f_col2:
+        if st.button("STD"): 
+            st.session_state.transpose = 0
+            st.rerun()
+    with f_col3:
+        if st.button("+"): 
+            st.session_state.transpose += 1
+            st.rerun()
+    with f_col4:
+        label = "⏸ STOPP" if st.session_state.scrolling else "▶ SCROLL"
+        if st.button(label, type="primary"):
+            st.session_state.scrolling = not st.session_state.scrolling
+            st.rerun()
+    with f_col5:
+        if st.button("STÄNG"):
+            st.session_state.active_song = None
+            st.session_state.scrolling = False
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. SCROLL ENGINE ---
+# --- 5. AVANCERAD SCROLL-MOTOR (JS) ---
 if st.session_state.scrolling:
-    ms = int((105 - st.session_state.speed) / 2)
-    st.components.v1.html(f"<script>setInterval(()=>window.parent.window.scrollBy(0,1),{ms})</script>", height=0)
+    # Beräkna hastighet: Högre fart = lägre delay
+    # Vi använder en mjukare scroll-metod för att undvika ryckighet
+    delay = int((105 - st.session_state.speed) / 2)
+    st.components.v1.html(f"""
+        <script>
+        if (window.parent.scrollInterval) {{
+            clearInterval(window.parent.scrollInterval);
+        }}
+        window.parent.scrollInterval = setInterval(function() {{
+            window.parent.window.scrollBy({{
+                top: 1,
+                left: 0,
+                behavior: 'smooth'
+            }});
+        }}, {delay});
+        </script>
+    """, height=0)
+else:
+    # Stoppa scroll om den är avstängd
+    st.components.v1.html("""
+        <script>
+        if (window.parent.scrollInterval) {
+            clearInterval(window.parent.scrollInterval);
+        }
+        </script>
+    """, height=0)

@@ -6,7 +6,7 @@ from pathlib import Path
 # --- 1. SETUP ---
 st.set_page_config(page_title="PlayIt! Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Session State för navigering och inställningar
+# Session State
 if "page" not in st.session_state: st.session_state.page = "list"
 if "active_song" not in st.session_state: st.session_state.active_song = None
 if "transpose" not in st.session_state: st.session_state.transpose = 0
@@ -39,59 +39,81 @@ def transpose_chord(chord, steps):
     return f"{notes[(notes.index(root) + steps) % 12]}{suffix}"
 
 def process_content(text, steps):
-    # Transponera ackord [Am]
     text = re.sub(r"\[(.*?)\]", lambda m: f"[{transpose_chord(m.group(1), steps)}]", text)
-    # Färga ackord lila/rosa för scenen
     return re.sub(r"\[(.*?)\]", r'<b style="color:#D187FF; font-weight:900;">[\1]</b>', text)
 
-# --- 3. CSS (BLACK STAGE UI + LOGO 125% BOOST) ---
+# --- 3. CSS (DEN STORA LAYOUT-FIXEN) ---
 logo_b64 = get_logo_b64()
-logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="top-logo">' if logo_b64 else '<b class="top-logo-txt">PLAYIT!</b>'
+# Här tvingar vi in loggan med en fast höjd på 180px
+logo_html = f'<img src="data:image/png;base64,{logo_b64}" class="stage-logo">' if logo_b64 else '<b style="color:white;font-size:40px;">PLAYIT!</b>'
 
 st.markdown(f"""
 <style>
-    /* Svart bakgrund och nollställning av Streamlit */
-    [data-testid="stHeader"], [data-testid="stToolbar"], footer {{ display: none !important; }}
+    /* DÖDA STREAMLITS EGNA ELEMENT HELT */
+    header, [data-testid="stHeader"], [data-testid="stToolbar"], footer {{ 
+        display: none !important; 
+        height: 0 !important;
+        opacity: 0 !important;
+    }}
+    
     [data-testid="stAppViewContainer"] {{ background-color: #000000 !important; }}
     .main .block-container {{ padding: 0 !important; max-width: 100% !important; }}
 
-    /* FIXED HEADER */
-    .nav-header {{
-        position: fixed; top: 0; left: 0; width: 100%; height: 90px;
-        background: #111; z-index: 9999; border-bottom: 1px solid #333;
-        display: flex; align-items: center; padding: 0 20px;
+    /* VÅR NYA SUPER-HEADER (Z-INDEX ÄR NYCKELN) */
+    .custom-header {{
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 200px; /* Mycket högre för att rymma loggan */
+        background: #000; 
+        z-index: 9999999; /* Ligger över allt annat */
+        border-bottom: 1px solid #222;
+        display: flex; 
+        align-items: center; 
+        padding: 0 30px;
     }}
-    /* LOGO ÖKAD 125% (Nu 80px hög) */
-    .top-logo {{ height: 80px; width: auto; margin-right: 20px; }}
-    .top-logo-txt {{ font-size: 28px; color: white; font-weight: 900; }}
+    
+    .stage-logo {{ 
+        height: 180px; /* REJÄL STORLEK */
+        width: auto; 
+        object-fit: contain;
+        margin-right: 40px;
+    }}
 
-    /* LYRICS AREA */
-    .lyrics-box {{
-        margin-top: 110px; padding: 25px; padding-bottom: 120px;
+    /* LYRICS AREA - MÅSTE BÖRJA LÄGRE NER NU */
+    .lyrics-wrapper {{
+        margin-top: 220px; 
+        padding: 30px; 
+        padding-bottom: 150px;
         font-family: 'Courier New', Courier, monospace !important;
-        font-size: 22px; line-height: 1.6; white-space: pre-wrap;
-        color: #efefef; background: #000;
+        font-size: 24px; /* Lite större text för scenen */
+        line-height: 1.6; 
+        white-space: pre-wrap;
+        color: #f0f0f0;
     }}
 
-    /* KNAPPAR */
+    /* KNAPPARNA I HEADERN */
     .stButton > button {{
-        background: #1a1a1a !important; color: #fff !important;
-        border: 1px solid #444 !important; border-radius: 8px !important;
+        background: #1a1a1a !important; 
+        color: #fff !important;
+        border: 1px solid #444 !important; 
+        height: 50px !important;
+        font-size: 16px !important;
         font-weight: bold !important;
     }}
-    button[kind="primary"] {{ background: #D187FF !important; color: #000 !important; border: none !important; }}
 </style>
-<div class="nav-header">{logo_html}</div>
+<div class="custom-header">{logo_html}</div>
 """, unsafe_allow_html=True)
 
-# --- 4. NAVIGATION & SIDOR ---
+# --- 4. NAVIGATION ---
 
 if st.session_state.page == "list":
-    st.markdown('<div class="lyrics-box">', unsafe_allow_html=True)
-    st.markdown("<h2 style='color:#666;'>REPERTOAR</h2>", unsafe_allow_html=True)
+    st.markdown('<div class="lyrics-wrapper">', unsafe_allow_html=True)
+    st.markdown("<h1 style='color:#444; margin-bottom:40px;'>REPERTOAR</h1>", unsafe_allow_html=True)
     songs = get_songs()
     for name, stem in songs.items():
-        if st.button(name, key=f"select_{stem}", use_container_width=True):
+        if st.button(name, key=f"s_{stem}", use_container_width=True):
             st.session_state.active_song = stem
             st.session_state.page = "lyrics"
             st.session_state.transpose = 0
@@ -99,30 +121,29 @@ if st.session_state.page == "list":
     st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    # LÅTVY - HEADER KONTROLLER (Sitter i sticky header-området)
-    # Vi använder columns för att placera knapparna snyggt brevid loggan
-    c_back, c_title, c_settings = st.columns([2, 4, 1])
+    # LÅTVY - KONTROLLER I HEADERN
+    # Vi lägger knapparna i Streamlit-kolumner som vi visuellt "flyttar upp" i headern
+    header_cols = st.columns([2.5, 4, 1])
     
-    with c_back:
-        st.markdown('<div style="margin-top:25px;"></div>', unsafe_allow_html=True)
-        if st.button("⬅ LÅTAR"):
+    with header_cols[0]:
+        st.markdown('<div style="margin-top:75px;"></div>', unsafe_allow_html=True)
+        if st.button("⬅ TILL LISTAN"):
             st.session_state.page = "list"
             st.session_state.scrolling = False
             st.rerun()
             
-    with c_title:
-        # Visar låtnamn diskret i mitten
-        st.markdown(f"<p style='text-align:center; line-height:90px; margin:0; color:#444; font-weight:bold;'>{st.session_state.active_song.replace('_',' ')}</p>", unsafe_allow_html=True)
+    with header_cols[1]:
+        # Visar låtnamn diskret
+        st.markdown(f"<p style='text-align:center; line-height:200px; margin:0; color:#333; font-weight:bold; font-size:20px;'>{st.session_state.active_song.replace('_',' ')}</p>", unsafe_allow_html=True)
         
-    with c_settings:
-        st.markdown('<div style="margin-top:25px;"></div>', unsafe_allow_html=True)
+    with header_cols[2]:
+        st.markdown('<div style="margin-top:75px;"></div>', unsafe_allow_html=True)
         with st.popover("⚙️"):
             st.write("### Inställningar")
-            st.write(f"Ton: **{st.session_state.transpose}**")
-            t1, t2, t3 = st.columns(3)
-            if t1.button("–"): st.session_state.transpose -= 1; st.rerun()
-            if t2.button("0"): st.session_state.transpose = 0; st.rerun()
-            if t3.button("+"): st.session_state.transpose += 1; st.rerun()
+            st.write(f"Tone: **{st.session_state.transpose}**")
+            t_col1, t_col2 = st.columns(2)
+            if t_col1.button("–"): st.session_state.transpose -= 1; st.rerun()
+            if t_col2.button("+"): st.session_state.transpose += 1; st.rerun()
             st.divider()
             st.session_state.speed = st.slider("Fart", 1, 100, st.session_state.speed)
             if st.button("START/STOPP SCROLL", type="primary", use_container_width=True):
@@ -134,32 +155,18 @@ else:
     if file_path.exists():
         with open(file_path, "r", encoding="utf-8") as f:
             content = process_content(f.read(), st.session_state.transpose)
-        st.markdown(f'<div class="lyrics-box">{content}</div>', unsafe_allow_html=True)
-    else:
-        st.error("Filen hittades inte.")
+        st.markdown(f'<div class="lyrics-wrapper">{content}</div>', unsafe_allow_html=True)
 
-# --- 5. SCROLL ENGINE (SÄKER MOT SCRIPT ERROR) ---
+# --- 5. SCROLL ENGINE ---
 if st.session_state.scrolling:
-    delay = int(110 - st.session_state.speed)
+    delay = int(115 - st.session_state.speed)
     st.components.v1.html(f"""
         <script>
-        try {{
-            const win = window.parent;
-            if (win.scrollInterval) {{ clearInterval(win.scrollInterval); }}
-            win.scrollInterval = setInterval(() => {{
-                win.window.scrollBy({{top: 1, left: 0, behavior: 'instant'}});
+            if (window.parent.si) clearInterval(window.parent.si);
+            window.parent.si = setInterval(() => {{
+                window.parent.window.scrollBy(0, 1);
             }}, {delay});
-        }} catch (e) {{
-            console.error("Scroll error:", e);
-        }}
         </script>
     """, height=0)
 else:
-    st.components.v1.html("""
-        <script>
-        try {{
-            const win = window.parent;
-            if (win.scrollInterval) {{ clearInterval(win.scrollInterval); }}
-        }} catch (e) {{}}
-        </script>
-    """, height=0)
+    st.components.v1.html("<script>clearInterval(window.parent.si);</script>", height=0)

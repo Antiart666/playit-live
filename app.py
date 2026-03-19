@@ -11,8 +11,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-if "selected_song" not in st.session_state:
-    st.session_state.selected_song = None
+# Hämta vald låt direkt från webbadressen (URL) för snabbast respons
+query_params = st.query_params
+active_song = query_params.get("song", None)
 
 LIB_DIR = Path("library")
 LIB_DIR.mkdir(exist_ok=True)
@@ -31,9 +32,10 @@ def get_logo_b64():
             return base64.b64encode(f.read()).decode()
     return None
 
-# --- 2. CSS: HORIZONTAL SCROLL & NO-OVERLAY ---
+# --- 2. THE CLEAN STAGE CSS ---
 st.markdown(f"""
     <style>
+    /* Bakgrund */
     [data-testid="stAppViewContainer"], .stApp {{
         background-color: #ffffff !important;
     }}
@@ -41,13 +43,13 @@ st.markdown(f"""
         display: none !important;
     }}
 
-    /* FIXED HEADER BASE */
-    .header-bar {{
+    /* HEADER-PLATTA */
+    .header-box {{
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
-        height: 160px;
+        height: 155px;
         background: #ffffff;
         z-index: 999;
         border-bottom: 2px solid #f0f0f0;
@@ -56,46 +58,66 @@ st.markdown(f"""
     /* LOGO (VÄNSTER) */
     .stage-logo {{
         position: fixed;
-        left: 10px;
-        top: 5px;
-        height: 100px;
+        left: 15px;
+        top: 10px;
+        height: 90px;
         z-index: 1000;
         transform: rotate(-5deg);
     }}
 
-    /* START-KNAPP (HÖGER) */
-    .start-btn-container {{
+    /* START-KNAPP (UPPE HÖGER) */
+    .start-link {{
         position: fixed;
-        top: 20px;
-        right: 15px;
+        top: 25px;
+        right: 20px;
+        background: #000;
+        color: #fff !important;
+        padding: 10px 25px;
+        border-radius: 50px;
+        font-weight: 900;
+        text-decoration: none !important;
         z-index: 1001;
+        text-transform: uppercase;
+        font-size: 14px;
     }}
 
-    /* HORISONTELL LÅT-LISTA (CENTRAL) */
-    /* Denna ersätter rullisten för att inte täcka skärmen */
-    .song-slider {{
+    /* LÅT-SLIDER (HORISONTELL) */
+    .song-nav {{
         position: fixed;
-        top: 110px;
+        top: 105px;
         left: 0;
         width: 100%;
-        height: 50px;
         overflow-x: auto;
         white-space: nowrap;
-        background: #ffffff;
-        padding: 5px 10px;
+        padding: 10px 15px;
         z-index: 1002;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 10px;
+        background: #fff;
         -webkit-overflow-scrolling: touch;
+        display: flex;
+        gap: 15px;
     }}
 
-    /* Styla Streamlit-knapparna inuti slidern */
-    div[data-testid="column"] {{
-        min-width: 150px !important;
+    .song-link {{
+        display: inline-block;
+        color: #000 !important;
+        text-decoration: none !important;
+        font-weight: 800;
+        font-size: 15px;
+        padding: 5px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #f9f9f9;
+        text-transform: uppercase;
     }}
 
-    .song-area {{
+    .song-link.active {{
+        background: #ff0000 !important;
+        color: #fff !important;
+        border-color: #ff0000;
+    }}
+
+    /* LÅT-TEXTEN */
+    .song-content {{
         margin-top: 170px;
         font-family: 'Roboto Mono', monospace !important;
         font-size: 15px !important;
@@ -103,54 +125,45 @@ st.markdown(f"""
         white-space: pre-wrap !important;
         color: #000 !important;
         padding-bottom: 80vh;
+        width: 100%;
     }}
-
-    /* Göm alla input-fält för att säkra mot tangentbord */
+    
+    /* Göm alla automatiska input-fält */
     input {{ display: none !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. RENDERING ---
+# --- 3. RENDER UI ---
 
-st.markdown('<div class="header-bar"></div>', unsafe_allow_html=True)
+# Header bakgrund
+st.markdown('<div class="header-box"></div>', unsafe_allow_html=True)
 
-# 1. Logga
+# Logga
 logo_data = get_logo_b64()
 if logo_data:
     st.markdown(f'<img src="data:image/png;base64,{logo_data}" class="stage-logo">', unsafe_allow_html=True)
 else:
-    st.markdown('<div style="position:fixed; left:15px; top:20px; font-weight:900; font-size:30px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
+    st.markdown('<div style="position:fixed; left:15px; top:25px; font-weight:900; font-size:30px; z-index:1000;">PLAYIT</div>', unsafe_allow_html=True)
 
-# 2. START-knapp
-with st.container():
-    st.markdown('<div class="start-btn-container">', unsafe_allow_html=True)
-    if st.button("START", key="reset_btn"):
-        st.session_state.selected_song = None
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+# START-knapp (Rensar URL)
+st.markdown('<a href="/" target="_self" class="start-link">START</a>', unsafe_allow_html=True)
 
-# 3. HORISONTELL MENY (Istället för rullista)
+# LÅT-MENY (Horisontell swajpbar lista)
 songs = get_songs()
-st.markdown('<div style="height: 110px;"></div>', unsafe_allow_html=True) # Spacer
+song_links_html = ""
+for display_name, file_stem in songs.items():
+    active_class = "active" if active_song == file_stem else ""
+    song_links_html += f'<a href="?song={file_stem}" target="_self" class="song-link {active_class}">{display_name.upper()}</a>'
 
-# Vi skapar en rad med knappar som man kan swipa i
-cols = st.columns(len(songs) if songs else 1)
-for i, (display_name, file_stem) in enumerate(songs.items()):
-    with cols[i]:
-        # Markera vald låt med färg
-        is_active = st.session_state.selected_song == file_stem
-        btn_type = "primary" if is_active else "secondary"
-        if st.button(display_name.upper(), key=f"s_{file_stem}", type=btn_type):
-            st.session_state.selected_song = file_stem
-            st.rerun()
+st.markdown(f'<div class="song-nav">{song_links_html}</div>', unsafe_allow_html=True)
 
 # --- 4. DISPLAY CONTENT ---
-if st.session_state.selected_song:
-    song_file = LIB_DIR / f"{st.session_state.selected_song}.md"
+if active_song:
+    song_file = LIB_DIR / f"{active_song}.md"
     if song_file.exists():
         with open(song_file, "r", encoding="utf-8") as f:
-            content = f.read()
-        st.markdown(f'<div class="song-area">{content}</div>', unsafe_allow_html=True)
+            lyrics = f.read()
+        st.markdown(f'<div class="song-content">{lyrics}</div>', unsafe_allow_html=True)
 
-# Scroll-fix
+# Nollställ scroll till toppen vid ny låt
 st.markdown("<script>window.parent.document.querySelector('.main').scrollTop = 0;</script>", unsafe_allow_html=True)

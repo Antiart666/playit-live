@@ -30,7 +30,7 @@
   width: 125px;
   height: auto;
   object-fit: contain;
-  margin-top: 14px;
+  margin-top: 22px;
   transform: rotate(-5deg);
   transition: transform 0.3s ease;
 }

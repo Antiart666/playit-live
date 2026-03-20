@@ -37,7 +37,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
 
   return (
     <>
-      <Header title="REPERTOAR" />
+      <Header title="Antichrister says playit!" />
 
       <Box className={styles.libraryContainer}>
         <SearchBar 

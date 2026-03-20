@@ -3,7 +3,7 @@ import ClientThemeProvider from '@/components/ClientThemeProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'PlayIt! Pro',
+  title: 'Antichrister says playit!',
   description: 'Music transposition app with Material Design 3',
 };
 

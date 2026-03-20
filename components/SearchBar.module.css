@@ -1,0 +1,55 @@
+.container {
+  padding: 15px 0;
+  width: 100%;
+}
+
+.input {
+  background-color: #222222;
+  border-radius: 8px;
+
+  .MuiOutlinedInput-root {
+    color: #ffffff;
+
+    fieldset {
+      border-color: #444444;
+    }
+
+    &:hover fieldset {
+      border-color: #D187FF;
+    }
+
+    &.Mui-focused fieldset {
+      border-color: #D187FF;
+    }
+  }
+
+  .MuiOutlinedInput-input {
+    padding: 10px 0;
+
+    &::placeholder {
+      color: #888888;
+      opacity: 1;
+    }
+  }
+}
+
+.icon {
+  color: #D187FF;
+  margin-right: 8px;
+}
+
+.clearButton {
+  color: #D187FF !important;
+  min-width: auto;
+  padding: 4px;
+
+  &:hover {
+    background-color: rgba(209, 135, 255, 0.1);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 12px 0;
+  }
+}

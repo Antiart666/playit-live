@@ -1,0 +1,114 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-family: 'Courier New', Courier, monospace;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+.chordLine {
+  margin: 0;
+  padding: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: inherit;
+  line-height: 1.4;
+  color: #D187FF;
+  font-weight: bold;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  
+  /* Ensure chords don't wrap unexpectedly */
+  min-height: 1.2em;
+}
+
+.lyricLine {
+  margin: 0;
+  padding: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: inherit;
+  line-height: 1.4;
+  color: #ffffff;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.emptyLine {
+  margin: 0.5em 0;
+  padding: 0;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.chordWord {
+  display: inline;
+  white-space: nowrap;
+}
+
+.chordClickable {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.chordClickable:hover {
+  background-color: rgba(209, 135, 255, 0.15);
+  text-shadow: 0 0 8px rgba(209, 135, 255, 0.5);
+  box-shadow: 0 0 6px rgba(209, 135, 255, 0.3);
+}
+
+.chordClickable:active {
+  transform: scale(0.95);
+}
+
+.popover {
+  background-color: #1a1a1a;
+  border: 1px solid #D187FF;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(209, 135, 255, 0.2);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .container {
+    gap: 0;
+  }
+
+  .chordLine {
+    font-size: 13px;
+    min-height: 1.15em;
+  }
+
+  .lyricLine {
+    font-size: 13px;
+  }
+
+  /* Reduce line-height slightly on mobile for better spacing */
+  .chordLine,
+  .lyricLine {
+    line-height: 1.35;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .chordLine {
+    font-size: 12px;
+    min-height: 1.1em;
+  }
+
+  .lyricLine {
+    font-size: 12px;
+  }
+
+  .chordLine,
+  .lyricLine {
+    line-height: 1.3;
+  }
+}

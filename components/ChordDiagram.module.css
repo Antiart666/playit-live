@@ -1,0 +1,134 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  border: 1px solid #333333;
+  transition: all 0.2s ease;
+}
+
+.interactive {
+  cursor: pointer;
+
+  &:hover {
+    background-color: #222222;
+    border-color: #D187FF;
+    transform: scale(1.05);
+  }
+}
+
+.small {
+  padding: 6px;
+}
+
+.medium {
+  padding: 10px;
+}
+
+.large {
+  padding: 14px;
+}
+
+.diagram {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fretIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 20px;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #D187FF;
+  font-size: 12px;
+}
+
+.nut {
+  width: 100%;
+  height: 4px;
+  background-color: #333333;
+  border-radius: 2px;
+}
+
+.fretNumber {
+  color: #D187FF;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.svg {
+  display: block;
+  margin: 0;
+}
+
+.fretNumbers {
+  display: flex;
+  gap: 20px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #888888;
+  width: 100%;
+  justify-content: center;
+}
+
+.fretLabel {
+  width: 20px;
+  text-align: center;
+}
+
+.stringNames {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #888888;
+  width: 100%;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.stringName {
+  width: 20px;
+  text-align: center;
+}
+
+.chordName {
+  font-weight: 700;
+  color: #D187FF;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.noChord {
+  padding: 8px;
+  color: #888888;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .diagram {
+    transform: scale(0.85);
+  }
+
+  .fretNumbers {
+    gap: 16px;
+  }
+
+  .stringNames {
+    gap: 16px;
+  }
+}

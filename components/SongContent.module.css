@@ -1,0 +1,145 @@
+.controlPanel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 1000;
+  background: rgba(17, 17, 17, 0.95);
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  backdrop-filter: blur(10px);
+}
+
+.controlGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.label {
+  color: #b0b0b0;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  min-width: 50px;
+}
+
+.controlButton {
+  min-width: 36px;
+  height: 36px;
+  font-weight: 700;
+  background-color: #222222 !important;
+  border: 1px solid #444444 !important;
+
+  &:hover {
+    background-color: #333333 !important;
+  }
+}
+
+.settingsButton {
+  color: #D187FF;
+  min-width: 36px;
+  min-height: 36px;
+
+  &:hover {
+    background-color: rgba(209, 135, 255, 0.1);
+  }
+}
+
+.popover {
+  .MuiPaper-root {
+    background-color: #1a1a1a;
+    border: 1px solid #333333;
+    backdrop-filter: blur(10px);
+  }
+}
+
+.popoverContent {
+  padding: 20px;
+  min-width: 250px;
+  color: #ffffff;
+}
+
+.toggleButton {
+  margin-top: 8px;
+  text-transform: uppercase;
+  font-weight: 700;
+  min-height: 36px;
+}
+
+.slider {
+  margin-top: 8px;
+  color: #D187FF;
+
+  .MuiSlider-rail {
+    background-color: #333333;
+    opacity: 1;
+  }
+
+  .MuiSlider-track {
+    background-color: #D187FF;
+    border: none;
+  }
+
+  .MuiSlider-thumb {
+    background-color: #D187FF;
+    border: 2px solid #D187FF;
+  }
+}
+
+.lyricsContainer {
+  padding: 100px 20px 200px 20px;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.lyrics {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .controlPanel {
+    bottom: 15px;
+    right: 15px;
+    flex-direction: column;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .controlGroup {
+    width: 100%;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .label {
+    width: 100%;
+    text-align: center;
+  }
+
+  .lyricsContainer {
+    padding: 80px 15px 180px 15px;
+  }
+
+  .lyrics {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .settingsButton {
+    width: 100%;
+  }
+}

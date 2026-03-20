@@ -1,0 +1,15 @@
+.button {
+  color: #D187FF !important;
+  min-width: 36px;
+  min-height: 36px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(209, 135, 255, 0.1);
+    transform: rotate(20deg);
+  }
+
+  svg {
+    font-size: 20px;
+  }
+}

@@ -1,4 +1,10 @@
-[INTRO/PIANO]
+FREE BIRD - LYNYRD SKYNYRD (1973)
+Låtskrivare: Allen Collins / Ronnie Van Zant
+Tempo: ~74 BPM / ~150 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: G-dur
+
+[INTRO]
 G   D/F#   Em   F   C   D
 
 [VERS 1]
@@ -53,5 +59,13 @@ And this bird you cannot change
 F           C             D
 Lord knows, I can't change
 
-[SOLO-UPPTAKT (Tungt!)]
-G5   Bb5   C5 (Repetera i oändlighet!)
+[UPPTAKT TILL SOLO]
+G5   Bb5   C5 
+
+[SOLO RYTM-RIFF]
+E |-----------------------------------|
+B |-----------------------------------|
+G |-----------------------------------|
+D |---5-5-5-5-5-5-5-5---8---10--------|
+A |---5-5-5-5-5-5-5-5---8---10--------|
+E |---3-3-3-3-3-3-3-3---6---8---------|

@@ -19,7 +19,7 @@ It's got everything
 F5               G5
 Like a driving power, big fat tires and everything
 
-[REFRÄNG]
+[REFRÄNG 1]
 G5         F5         C5         G5
 I love it! I need it! I seed it! Eight cylinders all mine!
 G5         F5         C5         G5
@@ -37,7 +37,7 @@ She's got everything
 F5               G5
 Like a moving mouth, body control and everything
 
-[REFRÄNG]
+[REFRÄNG 2]
 G5         F5         C5         G5
 I love it! I need it! I seed it! She's a hurricane!
 G5         F5         C5         G5
@@ -64,11 +64,14 @@ I've got everything
 F5               G5
 Like a driving power, big fat tires and everything
 
-[REFRÄNG]
+[REFRÄNG 3]
 G5         F5         C5         G5
 I love it! I need it! I seed it! Eight cylinders all mine!
 G5         F5         C5         G5
 I love it! I need it! I seed it! Eight cylinders all mine!
 
 [OUTRO]
-G5 (Riff till fade)
+G5
+I'm a highway star! I'm a highway star! 
+G5
+I'm a highway star!

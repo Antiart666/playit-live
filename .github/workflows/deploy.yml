@@ -11,6 +11,7 @@ on:
       - 'lib/**'
       - 'package.json'
       - 'next.config.js'
+      - 'vercel.json'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -48,11 +49,21 @@ jobs:
         env:
           NEXT_PUBLIC_BUILD_ID: ${{ github.sha }}
 
-        - name: ✅ Build verification successful
+      - name: ✅ Build verification successful
         if: success()
         run: |
-            echo "✅ Build successful!"
-            echo "Vercel handles production deployment from main."
+          echo "✅ Build successful!"
+          echo "Vercel handles production deployment from main."
+
+      - name: 📝 Publish deployment summary
+        if: success()
+        run: |
+          {
+            echo "## Deploy status"
+            echo "- CI build/lint in GitHub Actions: success"
+            echo "- Production deploy source: Vercel (triggered from main)"
+            echo "- Commit: $GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: ❌ Deployment failed notification
         if: failure()

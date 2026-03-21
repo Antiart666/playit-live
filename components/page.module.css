@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52));
+  background-image: radial-gradient(circle at top, rgba(209, 135, 255, 0.16), rgba(0, 0, 0, 0.9) 48%);
   background-color: #000000;
 }
 
@@ -24,7 +24,7 @@
   cursor: pointer;
   border-radius: 20px;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5);
-  transition: transform 300ms ease-in-out, box-shadow 300ms ease-in-out;
+  transition: transform 0.1s ease, box-shadow 220ms ease-in-out;
 }
 
 .logoButton:hover,
@@ -34,14 +34,18 @@
 }
 
 .logoButton:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
+}
+
+.logoButtonPressed {
+  transform: scale(0.9);
 }
 
 .logoImage {
   width: auto;
-  height: 70vh;
-  max-height: 560px;
-  max-width: min(82vw, 430px);
+  height: 80.5vh;
+  max-height: 644px;
+  max-width: min(92vw, 495px);
   border-radius: 20px;
   display: block;
 }
@@ -57,35 +61,33 @@
 }
 
 .homeTitle {
-  font-family: var(--font-oswald), sans-serif;
+  font-family: var(--font-primary), var(--font-fallback), sans-serif;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
+  letter-spacing: 0.3px;
   font-size: 24px;
 }
 
 .toggleButton {
-  font-family: var(--font-inter), sans-serif !important;
-  background-color: #1f1f1f !important;
+  font-family: var(--font-primary), var(--font-fallback), sans-serif !important;
+  background-color: rgba(10, 10, 10, 0.92) !important;
   color: #ffffff !important;
-  border: 1px solid #515151 !important;
+  border: 1px solid rgba(209, 135, 255, 0.4) !important;
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.4px;
 
   &:hover {
-    background-color: #313131 !important;
+    background-color: rgba(24, 24, 24, 0.95) !important;
     border-color: #d187ff !important;
   }
 }
 
 .dropdownPanel {
-  font-family: var(--font-inter), sans-serif;
-  background: rgba(12, 12, 12, 0.88);
+  font-family: var(--font-primary), var(--font-fallback), sans-serif;
+  background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(209, 135, 255, 0.35);
   border-radius: 12px;
   padding: 10px 12px 14px 12px;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .songList {
@@ -96,11 +98,10 @@
 }
 
 .songButton {
-  font-family: var(--font-inter), sans-serif !important;
-  background-color: #222222 !important;
+  font-family: var(--font-primary), var(--font-fallback), sans-serif !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
   color: #ffffff !important;
-  border: 1px solid #444444 !important;
-  text-transform: uppercase;
+  border: 1px solid rgba(209, 135, 255, 0.3) !important;
   font-weight: 700;
   padding: 12px 16px !important;
   font-size: 14px;
@@ -108,17 +109,17 @@
   transition: all 0.2s ease-in-out;
 
   &:hover {
-    background-color: #333333 !important;
+    background-color: rgba(0, 0, 0, 0.84) !important;
     border-color: #D187FF !important;
   }
 
   &:active {
-    background-color: #444444 !important;
+    background-color: rgba(0, 0, 0, 0.95) !important;
   }
 }
 
 .noResults {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-primary), var(--font-fallback), sans-serif;
   padding: 40px 20px;
   text-align: center;
   color: #888888;
@@ -132,9 +133,9 @@
   }
 
   .logoImage {
-    height: 62vh;
-    max-height: 500px;
-    max-width: min(88vw, 360px);
+    height: 71.3vh;
+    max-height: 575px;
+    max-width: min(96vw, 414px);
   }
 
   .libraryContainer {
@@ -150,7 +151,7 @@
 
   .homeTitle {
     font-size: 19px;
-    letter-spacing: 1.2px;
+    letter-spacing: 0.2px;
   }
 
   .songList {

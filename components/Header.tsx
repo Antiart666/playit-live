@@ -34,8 +34,8 @@ export default function Header({ showBackButton, onBack, title, titleClassName, 
               <Image
                 src="/logo.png"
                 alt="Playit"
-                width={36}
-                height={36}
+                width={42}
+                height={42}
                 className={styles.backLogoIcon}
               />
             </Link>

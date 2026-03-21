@@ -1,23 +1,24 @@
 import type { Metadata } from 'next';
-import { Inter, Oswald } from 'next/font/google';
+import { Quicksand, Fredoka } from 'next/font/google';
 import ClientThemeProvider from '@/components/ClientThemeProvider';
 import './globals.css';
 
-const inter = Inter({
+const quicksand = Quicksand({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-primary',
+  weight: ['400', '500', '700'],
   display: 'swap',
 });
 
-const oswald = Oswald({
+const fredoka = Fredoka({
   subsets: ['latin'],
-  variable: '--font-oswald',
+  variable: '--font-fallback',
   weight: ['400', '700'],
   display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'Antichrister says playit!',
+  title: 'Antichrister says PlayIt!',
   description: 'Music transposition app with Material Design 3',
 };
 
@@ -32,7 +33,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
-      <body className={`${inter.variable} ${oswald.variable}`}>
+      <body className={`${quicksand.variable} ${fredoka.variable}`}>
         <ClientThemeProvider>
           {children}
         </ClientThemeProvider>

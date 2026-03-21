@@ -44,7 +44,8 @@
   font-size: 18px;
   font-weight: 700;
   text-align: center;
-  text-transform: uppercase;
+  font-family: var(--font-primary), var(--font-fallback), sans-serif;
+  text-transform: none;
   color: #ffffff;
 }
 
@@ -59,13 +60,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   background: rgba(34, 34, 34, 0.88);
   border: 1px solid #444444;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
-  transition: transform 300ms ease-in-out, box-shadow 300ms ease-in-out, border-color 300ms ease-in-out;
+  transition: transform 0.1s ease, box-shadow 300ms ease-in-out, border-color 300ms ease-in-out;
 }
 
 .backLogoLink:hover,
@@ -80,7 +81,7 @@
 }
 
 .backLogoIcon {
-  width: 36px;
+  width: 42px;
   height: auto;
   object-fit: contain;
 }
@@ -107,11 +108,11 @@
   }
 
   .backLogoLink {
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    height: 46px;
   }
 
   .backLogoIcon {
-    width: 32px;
+    width: 38px;
   }
 }

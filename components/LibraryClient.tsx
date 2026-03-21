@@ -21,6 +21,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isListOpen, setIsListOpen] = useState(false);
+  const [isLogoPressed, setIsLogoPressed] = useState(false);
   const songListRef = React.useRef<HTMLDivElement | null>(null);
 
   // Filter songs based on search query
@@ -58,7 +59,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
 
   return (
     <div className={styles.pageWrapper}>
-      <Header title="Antichrister says playit!" titleClassName={styles.homeTitle}>
+      <Header title="Antichrister says PlayIt!" titleClassName={styles.homeTitle}>
         <Button
           onClick={toggleList}
           variant="contained"
@@ -73,14 +74,18 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
         <button
           type="button"
           onClick={handleLogoClick}
-          className={styles.logoButton}
+          className={`${styles.logoButton} ${isLogoPressed ? styles.logoButtonPressed : ''}`}
           aria-label="Öppna låtlistan"
+          onPointerDown={() => setIsLogoPressed(true)}
+          onPointerUp={() => setIsLogoPressed(false)}
+          onPointerLeave={() => setIsLogoPressed(false)}
+          onPointerCancel={() => setIsLogoPressed(false)}
         >
           <Image
             src="/logo.png"
             alt="Playit logga"
-            width={360}
-            height={520}
+            width={414}
+            height={598}
             priority
             className={styles.logoImage}
           />

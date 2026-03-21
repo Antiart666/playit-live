@@ -1,3 +1,9 @@
+GOODNIGHT MOON - SHIVAREE (1999)
+Låtskrivare: Ambrosia Parsley / Duke McVinnie
+Tempo: ~86 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: Am
+
 [INTRO/RIFF]
     Am              F               E7              Am
 E |-------0-------|-------1-------|-------0-------|-------0-------|

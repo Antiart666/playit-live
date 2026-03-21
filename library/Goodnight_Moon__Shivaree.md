@@ -23,7 +23,19 @@ Am                             F
 E7                             Am
    I'm the best thing that ever happened to these...
 
-[REFRÄNG]
+[REFRÄNG 1]
+Am                             F
+   So big light, big light, keep the world clean
+E7                             Am
+   Keep it bright, keep it white, keep it mean
+Am                             F
+   'Cause I'm your sister, I'm your mother, I'm your brother
+E7                             Am
+   I'm your friend, and I'm your lover...
+Am         F         E7         Am
+   Goodnight moon, goodnight moon.
+
+[REFRÄNG 2]
 Am                             F
    So big light, big light, keep the world clean
 E7                             Am

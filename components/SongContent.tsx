@@ -35,7 +35,8 @@ export default function SongContent({ content, bpm }: SongContentProps) {
       const pixelsPerTick = Math.max(0.25, pixelsPerSecond * (intervalMs / 1000));
 
       scrollIntervalRef.current = setInterval(() => {
-        window.scrollBy(0, pixelsPerTick);
+        document.documentElement.scrollTop += pixelsPerTick;
+        document.body.scrollTop += pixelsPerTick;
       }, intervalMs);
     } else {
       if (scrollIntervalRef.current) {

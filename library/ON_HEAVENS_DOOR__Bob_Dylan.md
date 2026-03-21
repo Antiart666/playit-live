@@ -1,8 +1,13 @@
+KNOCKIN' ON HEAVEN'S DOOR - BOB DYLAN (1973)
+Låtskrivare: Bob Dylan
+Tempo: ~68 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: G-dur
+
 [INTRO/PLOCK]
     G               D               Am
 E |-------3---------------2-------|---------0---------------|
 B |-----3---3-----------3---3-----|-------1---1-------------|
-G |---0-------0-------2-------2---|-----2-------2-----------|
 
 [VERS 1]
 G              D                   Am

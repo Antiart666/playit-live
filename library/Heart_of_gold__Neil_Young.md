@@ -22,8 +22,10 @@ Keep me searching for a heart of gold
 C                          G
 And I'm getting old
 
-[MELLANSPEL-RIFF]
-Em   C   D   G (x3)
+[MELLANSPEL]
+Em   C   D   G
+Em   C   D   G
+Em   C   D   G
 
 [VERS 2]
 Em            C            D           G

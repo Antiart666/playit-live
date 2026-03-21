@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import SongContent from '@/components/SongContent';
 
 export default function SongPage() {
-  const [songData, setSongData] = React.useState<{ content: string; title: string } | null>(null);
+  const [songData, setSongData] = React.useState<{ content: string; title: string; bpm: number } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function SongPage() {
         showBackButton
         onBack={handleBack}
       />
-      <SongContent content={songData.content} />
+      <SongContent content={songData.content} bpm={songData.bpm} />
     </>
   );
 }

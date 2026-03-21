@@ -10,12 +10,13 @@ import styles from './SongContent.module.css';
 
 interface SongContentProps {
   content: string;
+  bpm: number;
 }
 
-export default function SongContent({ content }: SongContentProps) {
+export default function SongContent({ content, bpm }: SongContentProps) {
   const [transpose, setTranspose] = useState(0);
   const [scrolling, setScrolling] = useState(false);
-  const [speed, setSpeed] = useState(40);
+  const [speedMultiplier, setSpeedMultiplier] = useState(100);
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -23,15 +24,19 @@ export default function SongContent({ content }: SongContentProps) {
   const normalizedContent = normalizeTabs(content, 2);
   const transposedContent = transposeSongContent(normalizedContent, transpose);
   const formattedLines = formatLyricsWithChordsAbove(transposedContent);
+  const effectiveBpm = Math.max(1, Math.round((bpm * speedMultiplier) / 100));
 
   // Handle autoscroll
   useEffect(() => {
     if (scrolling) {
-      // Inverse speed: higher speed means faster scroll
-      const ms = Math.max(10, Math.floor(150 - speed));
+      const intervalMs = 50;
+      const pixelsPerBeat = 6;
+      const pixelsPerSecond = (effectiveBpm / 60) * pixelsPerBeat;
+      const pixelsPerTick = Math.max(0.25, pixelsPerSecond * (intervalMs / 1000));
+
       scrollIntervalRef.current = setInterval(() => {
-        window.scrollBy(0, 1);
-      }, ms);
+        window.scrollBy(0, pixelsPerTick);
+      }, intervalMs);
     } else {
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
@@ -43,7 +48,7 @@ export default function SongContent({ content }: SongContentProps) {
         clearInterval(scrollIntervalRef.current);
       }
     };
-  }, [scrolling, speed]);
+  }, [scrolling, effectiveBpm]);
 
   const handlePopoverOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -103,6 +108,13 @@ export default function SongContent({ content }: SongContentProps) {
               <Typography variant="subtitle2">SCROLL CONTROLS</Typography>
 
               <Box>
+                <Typography variant="caption">BPM: {bpm}</Typography>
+                <Typography variant="caption" display="block">
+                  EFFEKTIVT TEMPO: {effectiveBpm} BPM
+                </Typography>
+              </Box>
+
+              <Box>
                 <Typography variant="caption">AUTOSCROLL</Typography>
                 <Button
                   onClick={() => setScrolling(!scrolling)}
@@ -116,10 +128,12 @@ export default function SongContent({ content }: SongContentProps) {
               </Box>
 
               <Box>
-                <Typography variant="caption">FART: {speed}</Typography>
+                <Typography variant="caption">
+                  BPM-MULTIPLIKATOR: {(speedMultiplier / 100).toFixed(2)}x
+                </Typography>
                 <Slider
-                  value={speed}
-                  onChange={(_, value) => setSpeed(value as number)}
+                  value={speedMultiplier}
+                  onChange={(_, value) => setSpeedMultiplier(value as number)}
                   min={1}
                   max={150}
                   className={styles.slider}

@@ -1,7 +1,7 @@
 .pageWrapper {
   position: relative;
   min-height: 100vh;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), url('/logo.png');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/logo.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -10,14 +10,39 @@
 
 .libraryContainer {
   position: relative;
-  padding: 100px 20px 20px 20px;
+  padding: 90px 16px 16px 16px;
   max-width: 800px;
   margin: 0 auto;
   min-height: 100vh;
 }
 
+.toggleButton {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+  border: 1px solid #515151 !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
+  &:hover {
+    background-color: #313131 !important;
+    border-color: #d187ff !important;
+  }
+}
+
+.dropdownPanel {
+  background: rgba(12, 12, 12, 0.88);
+  border: 1px solid rgba(209, 135, 255, 0.35);
+  border-radius: 12px;
+  padding: 10px 12px 14px 12px;
+  backdrop-filter: blur(4px);
+}
+
 .songList {
   gap: 12px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .songButton {
@@ -50,11 +75,15 @@
 
 @media (max-width: 768px) {
   .libraryContainer {
-    padding: 80px 15px 20px 15px;
+    padding: 84px 12px 12px 12px;
   }
 
   .songButton {
     font-size: 13px;
     padding: 10px 12px !important;
+  }
+
+  .songList {
+    max-height: calc(100vh - 210px);
   }
 }

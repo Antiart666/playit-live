@@ -1,11 +1,11 @@
-[INTRO/RIFF]
-*Palmmuted 8-delar på G5*
-E |-----------------------------------|
-B |-----------------------------------|
-G |-----------------------------------|
-D |-----------------------------------|
-A |-5-5-5-5-5-5-5-5-5-5-5-5-5-5-5-5---|
-E |-3-3-3-3-3-3-3-3-3-3-3-3-3-3-3-3---|
+HIGHWAY STAR - DEEP PURPLE (1972)
+Låtskrivare: Blackmore, Gillan, Glover, Lord, Paice
+Tempo: ~175 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: G-moll
+
+[INTRO]
+*G5 (Palmmuted 8-delar) - Kraftigt crescendo*
 
 [VERS 1]
 G5
@@ -42,15 +42,6 @@ G5         F5         C5         G5
 I love it! I need it! I seed it! She's a hurricane!
 G5         F5         C5         G5
 I love it! I need it! I seed it! She's a hurricane!
-
-[BRYGGA/RIFF - "KILLING MACHINE"]
-E |-----------------------------------|
-B |-----------------------------------|
-G |-3-------5-------7-------10--------|
-D |-3-------5-------7-------10--------|
-A |-1-------3-------5-------8---------|
-E |-----------------------------------|
-    Bb5     C5      D5      F5
 
 [VERS 3]
 G5

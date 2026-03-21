@@ -2,6 +2,8 @@
     D               G               C               G
 E |-2-2-2-2-2-0---|-3-3-3-3-3-3---|-0-0-0-0-0-0---|-3-3-3-3-3-3---|
 B |-3-3-3-3-3-3---|-3-3-3-3-3-3---|-1-1-1-1-1-1---|-3-3-3-3-3-3---|
+G |-2-2-2-2-2-2---|-0-0-0-0-0-0---|-0-0-0-0-0-0---|-0-0-0-0-0-0---|
+D |-0-0-0-0-0-0---|-0-0-0-0-0-0---|-2-2-2-2-2-2---|-0-0-0-0-0-0---|
 
 [VERS 1]
 D              G             C              G
@@ -29,7 +31,17 @@ A                           C
 A                           C
    I'm just a woman with a small town mind
 
-[REFRÄNG]
+[REFRÄNG 1]
+D           C                G
+   I changed by not changing at all
+D           C                G
+   Small town predicts my fate
+D           C                G
+   Perhaps that's what I hate about it...
+          D      C      G
+   I remember you...
+
+[REFRÄNG 2]
 D           C                G
    I changed by not changing at all
 D           C                G
@@ -41,4 +53,6 @@ D           C                G
 
 [OUTRO]
 D           C                G
-   I remember you... (Repeteras)
+   I remember you...
+D           C                G
+   I remember you...

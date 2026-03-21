@@ -1,11 +1,11 @@
 .pageWrapper {
   position: relative;
   min-height: 100vh;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/logo.png');
-  background-size: cover;
-  background-position: center;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52)), url('/logo.png');
+  background-size: auto 70vh;
+  background-position: center 58%;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: #000000;
 }
 
 .libraryContainer {
@@ -74,6 +74,11 @@
 }
 
 @media (max-width: 768px) {
+  .pageWrapper {
+    background-size: auto 62vh;
+    background-position: center 56%;
+  }
+
   .libraryContainer {
     padding: 84px 12px 12px 12px;
   }

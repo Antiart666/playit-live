@@ -1,3 +1,9 @@
+LILLA SNIGEL - TRAD.
+Låtskrivare: Trad.
+Tempo: ~90 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: C-dur
+
 [INTRO/RIFF]
 E |---8---8---7-------|---5---5---3-------|
 B |---------------8---|---------------6---|

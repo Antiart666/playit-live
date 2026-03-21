@@ -1,8 +1,12 @@
-[INTRO/MUNSPELSRIFF]
-(Munspelet spelar, gitarren svarar med tunga A5-slag)
+THE WIZARD - BLACK SABBATH (1970)
+Låtskrivare: Iommi, Butler, Ward, Osbourne
+Tempo: ~105 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: Am
+
+[INTRO/RIFF]
 A5      G5      D5      A5
 
-[HUVUDRIFF - GITARR]
 E |---------------------------|---------------------------|
 B |---------------------------|---------------------------|
 G |---------------------------|---------------------------|
@@ -42,6 +46,6 @@ Never talking, just keeps walking, spreading his magic
 A5             G5             D5             A5
 Never talking, just keeps walking, spreading his magic
 
-[OUTRO-RIFF (The Descent)]
+[OUTRO-RIFF]
 A5      G5      F5      E5
 A5      G5      F5      E5

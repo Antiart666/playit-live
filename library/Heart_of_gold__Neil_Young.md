@@ -1,3 +1,9 @@
+HEART OF GOLD - NEIL YOUNG (1972)
+Låtskrivare: Neil Young
+Tempo: ~86 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: Em / G-dur
+
 [INTRO/RIFF]
 E |---0---0-0-0---2---0-------|
 B |---0---0-0-0---3---0-------|
@@ -21,11 +27,6 @@ Em                                     G
 Keep me searching for a heart of gold
 C                          G
 And I'm getting old
-
-[MELLANSPEL]
-Em   C   D   G
-Em   C   D   G
-Em   C   D   G
 
 [VERS 2]
 Em            C            D           G

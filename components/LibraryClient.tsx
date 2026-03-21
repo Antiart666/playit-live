@@ -36,7 +36,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
   };
 
   return (
-    <>
+    <div className={styles.pageWrapper}>
       <Header title="Antichrister says playit!" />
 
       <Box className={styles.libraryContainer}>
@@ -65,6 +65,6 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
           )}
         </Stack>
       </Box>
-    </>
+    </div>
   );
 }

@@ -1,5 +1,11 @@
+COMFORTABLY NUMB - PINK FLOYD (1979)
+Låtskrivare: David Gilmour / Roger Waters
+Tempo: ~65 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: Bm / D-dur
+
 [INTRO]
-Bm   A   G   Em   Bm
+Bm    A    G    Em    Bm
 
 [VERS 1]
 Bm                                     A
@@ -69,7 +75,7 @@ This is not how I am...
 A    G/B    C          G          D
 I............ have become comfortably numb.
 
-[BRYGGA/KOMP UNDER OUTRO]
+[OUTRO-KOMP]
 E |-------------------------------------------------------|
 B |-------------------------------------------------------|
 G |---4-4-4-4-4-4---2-2-2-2-2-2---------------------------|

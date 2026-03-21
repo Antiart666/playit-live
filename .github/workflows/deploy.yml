@@ -23,12 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: production
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: 📥 Checkout repository
@@ -54,20 +48,11 @@ jobs:
         env:
           NEXT_PUBLIC_BUILD_ID: ${{ github.sha }}
 
-      - name: 📤 Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './out'
-
-      - name: 🚀 Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: ✅ Deployment notification
+        - name: ✅ Build verification successful
         if: success()
         run: |
-          echo "✅ Deployment successful!"
-          echo "App is now live and includes the latest songs from /library"
+            echo "✅ Build successful!"
+            echo "Vercel handles production deployment from main."
 
       - name: ❌ Deployment failed notification
         if: failure()

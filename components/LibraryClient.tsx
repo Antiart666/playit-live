@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { Box, Button, Stack } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
@@ -20,6 +21,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isListOpen, setIsListOpen] = useState(false);
+  const songListRef = React.useRef<HTMLDivElement | null>(null);
 
   // Filter songs based on search query
   const filteredSongs = useMemo(() => {
@@ -40,6 +42,20 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
     setIsListOpen(prev => !prev);
   };
 
+  const handleLogoClick = () => {
+    if (!isListOpen) {
+      setIsListOpen(true);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          songListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      return;
+    }
+
+    songListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className={styles.pageWrapper}>
       <Header title="Antichrister says playit!" titleClassName={styles.homeTitle}>
@@ -53,7 +69,25 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
         </Button>
       </Header>
 
-      <Box className={styles.libraryContainer}>
+      <Box className={styles.heroSection}>
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          className={styles.logoButton}
+          aria-label="Öppna låtlistan"
+        >
+          <Image
+            src="/logo.png"
+            alt="Playit logga"
+            width={360}
+            height={520}
+            priority
+            className={styles.logoImage}
+          />
+        </button>
+      </Box>
+
+      <Box className={styles.libraryContainer} ref={songListRef}>
         {isListOpen && (
           <Box className={styles.dropdownPanel}>
             <SearchBar

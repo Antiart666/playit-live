@@ -1,16 +1,50 @@
 .pageWrapper {
   position: relative;
   min-height: 100vh;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52)), url('/logo.png');
-  background-size: auto 70vh;
-  background-position: center 58%;
-  background-repeat: no-repeat;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52));
   background-color: #000000;
+}
+
+.heroSection {
+  min-height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 88px;
+}
+
+.logoButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 20px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5);
+  transition: transform 300ms ease-in-out, box-shadow 300ms ease-in-out;
+}
+
+.logoButton:hover,
+.logoButton:focus-visible {
+  transform: translateY(-8px);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.58);
+}
+
+.logoButton:active {
+  transform: scale(0.95);
+}
+
+.logoImage {
+  width: auto;
+  height: 70vh;
+  max-height: 560px;
+  max-width: min(82vw, 430px);
+  border-radius: 20px;
+  display: block;
 }
 
 .libraryContainer {
   position: relative;
-  padding: 90px 16px 16px 16px;
+  padding: 0 16px 16px 16px;
   max-width: 800px;
   margin: 0 auto;
   min-height: 100vh;
@@ -86,13 +120,19 @@
 }
 
 @media (max-width: 768px) {
-  .pageWrapper {
-    background-size: auto 62vh;
-    background-position: center 56%;
+  .heroSection {
+    min-height: 64vh;
+    padding-top: 82px;
+  }
+
+  .logoImage {
+    height: 62vh;
+    max-height: 500px;
+    max-width: min(88vw, 360px);
   }
 
   .libraryContainer {
-    padding: 84px 12px 12px 12px;
+    padding: 0 12px 12px 12px;
   }
 
   .songButton {

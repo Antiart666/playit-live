@@ -55,6 +55,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#000000',
+          backgroundImage: 'none',
           borderBottom: '1px solid #1a1a1a',
           boxShadow: 'none',
         },

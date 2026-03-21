@@ -16,7 +16,16 @@
   min-height: 100vh;
 }
 
+.homeTitle {
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  font-size: 24px;
+}
+
 .toggleButton {
+  font-family: var(--font-inter), sans-serif !important;
   background-color: #1f1f1f !important;
   color: #ffffff !important;
   border: 1px solid #515151 !important;
@@ -31,6 +40,7 @@
 }
 
 .dropdownPanel {
+  font-family: var(--font-inter), sans-serif;
   background: rgba(12, 12, 12, 0.88);
   border: 1px solid rgba(209, 135, 255, 0.35);
   border-radius: 12px;
@@ -46,6 +56,7 @@
 }
 
 .songButton {
+  font-family: var(--font-inter), sans-serif !important;
   background-color: #222222 !important;
   color: #ffffff !important;
   border: 1px solid #444444 !important;
@@ -67,6 +78,7 @@
 }
 
 .noResults {
+  font-family: var(--font-inter), sans-serif;
   padding: 40px 20px;
   text-align: center;
   color: #888888;
@@ -86,6 +98,11 @@
   .songButton {
     font-size: 13px;
     padding: 10px 12px !important;
+  }
+
+  .homeTitle {
+    font-size: 19px;
+    letter-spacing: 1.2px;
   }
 
   .songList {

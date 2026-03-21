@@ -1,13 +1,16 @@
 .container {
+  font-family: var(--font-inter), sans-serif;
   padding: 15px 0;
   width: 100%;
 }
 
 .input {
+  font-family: var(--font-inter), sans-serif;
   background-color: #222222;
   border-radius: 8px;
 
   .MuiOutlinedInput-root {
+    font-family: var(--font-inter), sans-serif;
     color: #ffffff;
 
     fieldset {
@@ -24,6 +27,7 @@
   }
 
   .MuiOutlinedInput-input {
+    font-family: var(--font-inter), sans-serif;
     padding: 10px 0;
 
     &::placeholder {

@@ -42,7 +42,7 @@ export default function LibraryClient({ songs }: LibraryPageProps) {
 
   return (
     <div className={styles.pageWrapper}>
-      <Header title="Antichrister says playit!">
+      <Header title="Antichrister says playit!" titleClassName={styles.homeTitle}>
         <Button
           onClick={toggleList}
           variant="contained"

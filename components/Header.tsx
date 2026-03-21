@@ -8,15 +8,16 @@ interface HeaderProps {
   showBackButton?: boolean;
   onBack?: () => void;
   title?: string;
+  titleClassName?: string;
   children?: React.ReactNode;
 }
 
-export default function Header({ showBackButton, onBack, title, children }: HeaderProps) {
+export default function Header({ showBackButton, onBack, title, titleClassName, children }: HeaderProps) {
   return (
     <AppBar position="fixed" className={styles.header}>
       <Toolbar className={styles.toolbar} disableGutters>
         {/* Center Title */}
-        {title && <Box className={styles.title}>{title}</Box>}
+        {title && <Box className={`${styles.title} ${titleClassName || ''}`}>{title}</Box>}
 
         {/* Right side controls */}
         <Box className={styles.controls}>

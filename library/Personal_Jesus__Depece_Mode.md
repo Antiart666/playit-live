@@ -1,3 +1,9 @@
+PERSONAL JESUS - JOHNNY CASH (2002)
+Låtskrivare: Martin Gore
+Tempo: ~110 BPM
+Stämning: Standard E (E A D G B E) - Kapo 2
+Tonart: Em (F#m)
+
 [INTRO/RIFF]
 A |-----2-----2-----2---0-----|-----2-----2-----2---0-----|
 E |-0-0---0-0---0-0---3---3---|-0-0---0-0---0-0---3---3---|
@@ -47,7 +53,5 @@ Em
 Take second best, put me to the test
 
 [OUTRO]
-Em
-Reach out and touch faith.
 Em
 Reach out and touch faith.

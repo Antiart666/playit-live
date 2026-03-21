@@ -1,34 +1,38 @@
+ELDERLY WOMAN BEHIND THE COUNTER IN A SMALL TOWN - PEARL JAM (1993)
+Låtskrivare: Eddie Vedder
+Tempo: ~78 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: D-dur
+
 [INTRO/RIFF]
-    D               G               C               G
-E |-2-2-2-2-2-0---|-3-3-3-3-3-3---|-0-0-0-0-0-0---|-3-3-3-3-3-3---|
-B |-3-3-3-3-3-3---|-3-3-3-3-3-3---|-1-1-1-1-1-1---|-3-3-3-3-3-3---|
-G |-2-2-2-2-2-2---|-0-0-0-0-0-0---|-0-0-0-0-0-0---|-0-0-0-0-0-0---|
-D |-0-0-0-0-0-0---|-0-0-0-0-0-0---|-2-2-2-2-2-2---|-0-0-0-0-0-0---|
+    D               Cadd9             G               G
+E |-2-2-2-2-2-0---|-3-3-3-3-3-3---|-3-3-3-3-3-3---|-3-3-3-3-3-3---|
+B |-3-3-3-3-3-3---|-3-3-3-3-3-3---|-3-3-3-3-3-3---|-3-3-3-3-3-3---|
 
 [VERS 1]
-D              G             C              G
+D              Cadd9             G            G
    I seem to recognize your face
-D              G             C              G
+D              Cadd9             G            G
    Haunting familiar, yet I can't look it in the eye
-D              G             C              G
+D              Cadd9             G            G
    I'm looking at the floor, I'm looking at it all
-D              G             C              G
+D              Cadd9             G            G
    Except I miss the way I can't look you in the eye
 
 [VERS 2]
-D              G             C              G
+D              Cadd9             G            G
    I seem to recognize your breath
-D              G             C              G
+D              Cadd9             G            G
    Memories like finger prints are slowly raising
-D              G             C              G
+D              Cadd9             G            G
    You step a little closer, I smell you on my arm
-D              G             C              G
+D              Cadd9             G            G
    But I cannot say your name...
 
 [BRYGGA]
-A                           C
+A                                  C
    I stopped privateering for a battlefield
-A                           C
+A                                  C
    I'm just a woman with a small town mind
 
 [REFRÄNG 1]
@@ -41,6 +45,12 @@ D           C                G
           D      C      G
    I remember you...
 
+[VERS 3]
+D                Cadd9             G          G
+   Hearts and thoughts they fade, fade away...
+D                Cadd9             G          G
+   Hearts and thoughts they fade, fade away...
+
 [REFRÄNG 2]
 D           C                G
    I changed by not changing at all
@@ -52,7 +62,5 @@ D           C                G
    I remember you...
 
 [OUTRO]
-D           C                G
-   I remember you...
-D           C                G
+          D      C      G
    I remember you...

@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
-import { AppBar, Toolbar, Box, Button } from '@mui/material';
+import Image from 'next/image';
+import Link from 'next/link';
+import { AppBar, Toolbar, Box } from '@mui/material';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -23,14 +25,20 @@ export default function Header({ showBackButton, onBack, title, titleClassName, 
         <Box className={styles.controls}>
           {children}
           {showBackButton && (
-            <Button
+            <Link
+              href="/"
               onClick={onBack}
-              variant="contained"
-              size="small"
-              className={styles.backButton}
+              className={styles.backLogoLink}
+              aria-label="Till startsidan"
             >
-              ⬅ LÅTAR
-            </Button>
+              <Image
+                src="/logo.png"
+                alt="Playit"
+                width={36}
+                height={36}
+                className={styles.backLogoIcon}
+              />
+            </Link>
           )}
         </Box>
       </Toolbar>

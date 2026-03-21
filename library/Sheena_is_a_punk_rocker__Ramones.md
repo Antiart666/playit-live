@@ -1,3 +1,9 @@
+SHEENA IS A PUNK ROCKER - RAMONES (1977)
+Låtskrivare: Joey Ramone
+Tempo: ~160 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: C-dur
+
 [INTRO]
 C5 (1-2-3-4!)
 

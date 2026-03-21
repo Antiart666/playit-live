@@ -2,6 +2,7 @@
     G               D               Am
 E |-------3---------------2-------|---------0---------------|
 B |-----3---3-----------3---3-----|-------1---1-------------|
+G |---0-------0-------2-------2---|-----2-------2-----------|
 
 [VERS 1]
 G              D                   Am
@@ -13,12 +14,11 @@ G                       D              Am
 G                  D                         C
    I feel I'm knockin' on heaven's door.
 
-[REFRÄNG]
+[REFRÄNG 1]
 G                  D                        Am
    Knock, knock, knockin' on heaven's door
 G                  D                        C
    Knock, knock, knockin' on heaven's door
-(Repeteras)
 
 [VERS 2]
 G              D                   Am
@@ -30,5 +30,8 @@ G                       D              Am
 G                  D                         C
    I feel I'm knockin' on heaven's door.
 
-[REFRÄNG]
-(Repeteras till fade)
+[REFRÄNG 2]
+G                  D                        Am
+   Knock, knock, knockin' on heaven's door
+G                  D                        C
+   Knock, knock, knockin' on heaven's door

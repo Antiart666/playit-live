@@ -1,3 +1,9 @@
+NO WOMAN, NO CRY - BOB MARLEY (1974)
+Låtskrivare: Vincent Ford
+Tempo: ~78 BPM
+Stämning: Standard E (E A D G B E)
+Tonart: C-dur
+
 [INTRO/BAS-RIFF]
 A |---3---2---0---------------|-------3-------------------|
 E |---------------3---1---3---|---3/5-----1---------------|

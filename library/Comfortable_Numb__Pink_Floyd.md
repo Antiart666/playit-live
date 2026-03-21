@@ -48,9 +48,28 @@ Can you stand up? I do believe it's working, good.
 That'll keep you going through the show. Come on it's time to go.
 
 [REFRÄNG 2]
-(Samma som Refräng 1)
+D                               A
+There is no pain, you are receding
+D                               A
+A distant ship's smoke on the horizon
+G                               C
+You are only coming through in waves
+G                               C
+Your lips move but I can't hear what you're saying
+D                               A
+When I was a child, I had a fever
+D                               A
+My hands felt just like two balloons
+G                               C
+Now I've got that feeling once again
+G
+I can't explain, you would not understand
+C              G
+This is not how I am...
+A    G/B    C          G          D
+I............ have become comfortably numb.
 
-[BRYGGA/KOMP UNDER SLUTET]
+[BRYGGA/KOMP UNDER OUTRO]
 E |-------------------------------------------------------|
 B |-------------------------------------------------------|
 G |---4-4-4-4-4-4---2-2-2-2-2-2---------------------------|

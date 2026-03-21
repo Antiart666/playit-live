@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, ButtonGroup, IconButton, Popover, Stack, Slider, Typography } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
-import { transposeChord } from '@/lib/transposition';
+import { transposeSongContent } from '@/lib/transposition';
 import { formatLyricsWithChordsAbove, normalizeTabs } from '@/lib/chordFormatter';
 import ChordLine from '@/components/ChordLine';
 import styles from './SongContent.module.css';
@@ -19,20 +19,9 @@ export default function SongContent({ content }: SongContentProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  /**
-   * Transpose all chords in the content
-   */
-  const transposeContent = (text: string, steps: number): string => {
-    if (steps === 0) return text;
-    return text.replace(/\[([^\]]+)\]/g, (_match, chord) => {
-      const transposedChord = transposeChord(chord.trim(), steps);
-      return `[${transposedChord}]`;
-    });
-  };
-
   // Normalize tabs and transpose
   const normalizedContent = normalizeTabs(content, 2);
-  const transposedContent = transposeContent(normalizedContent, transpose);
+  const transposedContent = transposeSongContent(normalizedContent, transpose);
   const formattedLines = formatLyricsWithChordsAbove(transposedContent);
 
   // Handle autoscroll
@@ -132,7 +121,7 @@ export default function SongContent({ content }: SongContentProps) {
                   value={speed}
                   onChange={(_, value) => setSpeed(value as number)}
                   min={1}
-                  max={100}
+                  max={150}
                   className={styles.slider}
                 />
               </Box>
